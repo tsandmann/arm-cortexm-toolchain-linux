@@ -1,4 +1,4 @@
-# arm-none-eabi-toolchain-linux
+# arm-cortexm-toolchain-linux
 A cross-compiler toolchain for Linux (built on CentOS 8) host and arm-none-eabi targets optimized for cortex-m4f and cortex-m7.
 
 #### Installation
