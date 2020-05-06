@@ -1,5 +1,5 @@
-# arm-none-eabi-toolchain-linux
-A cross-compiler toolchain for Linux (built on CentOS 8) host and arm-none-eabi targets optimized for cortex-m4f and cortex-m7.
+# arm-cortexm-toolchain-linux
+A cross-compiler toolchain for Linux (built on CentOS 8) host and arm-none-eabi targets optimized for cortex-m4f and cortex-m7f.
 
 #### Installation
 Checkout somewhere (e.g. to `/usr/local/arm-none-eabi`) and add the `bin` folder of that path (e.g `/usr/local/arm-none-eabi/bin`) to *PATH*.
