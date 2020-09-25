@@ -21,7 +21,7 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Tenth Edition, of 'Debugging with GDB: the GNU
-Source-Level Debugger' for GDB (GDB) Version 9.1.
+Source-Level Debugger' for GDB (GDB) Version 9.2.
 
    Copyright (C) 1988-2020 Free Software Foundation, Inc.
 
@@ -44,7 +44,7 @@ Debugging with GDB
 
 This file describes GDB, the GNU symbolic debugger.
 
-   This is the Tenth Edition, for GDB (GDB) Version 9.1.
+   This is the Tenth Edition, for GDB (GDB) Version 9.2.
 
    Copyright (C) 1988-2020 Free Software Foundation, Inc.
 
@@ -507,7 +507,7 @@ Let us use GDB to try to see what is going on.
      There is absolutely no warranty for GDB; type "show warranty"
       for details.
 
-     GDB 9.1, Copyright 1999 Free Software Foundation, Inc...
+     GDB 9.2, Copyright 1999 Free Software Foundation, Inc...
      (gdb)
 
 GDB reads only enough symbol data to know where to find the rest when
@@ -42058,7 +42058,7 @@ and TeX (or 'texi2roff') to typeset the printed version.
 
    GDB includes an already formatted copy of the on-line Info version of
 this manual in the 'gdb' subdirectory.  The main Info file is
-'gdb-9.1/gdb/gdb.info', and it refers to subordinate files matching
+'gdb-9.2/gdb/gdb.info', and it refers to subordinate files matching
 'gdb.info*' in the same directory.  If necessary, you can print out
 these files, or read them with any editor; but they are easier to read
 using the 'info' subsystem in GNU Emacs or the standalone 'info'
@@ -42068,7 +42068,7 @@ program, available as part of the GNU Texinfo distribution.
 Info formatting programs, such as 'texinfo-format-buffer' or 'makeinfo'.
 
    If you have 'makeinfo' installed, and are in the top level GDB source
-directory ('gdb-9.1', in the case of version 9.1), you can make the Info
+directory ('gdb-9.2', in the case of version 9.2), you can make the Info
 file by typing:
 
      cd gdb
@@ -42094,7 +42094,7 @@ On its own, TeX cannot either read or typeset a Texinfo file.
 
    If you have TeX and a DVI printer program installed, you can typeset
 and print this manual.  First switch to the 'gdb' subdirectory of the
-main source directory (for example, to 'gdb-9.1/gdb') and type:
+main source directory (for example, to 'gdb-9.2/gdb') and type:
 
      make gdb.dvi
 
@@ -42102,7 +42102,7 @@ main source directory (for example, to 'gdb-9.1/gdb') and type:
 
    ---------- Footnotes ----------
 
-   (1) In 'gdb-9.1/gdb/refcard.ps' of the version 9.1 release.
+   (1) In 'gdb-9.2/gdb/refcard.ps' of the version 9.2 release.
 
 
 File: gdb.info,  Node: Installing GDB,  Next: Maintenance Commands,  Prev: Formatting Documentation,  Up: Top
@@ -42253,35 +42253,35 @@ preparing GDB for installation; you can then use 'make' to build the
 a single directory, whose name is usually composed by appending the
 version number to 'gdb'.
 
-   For example, the GDB version 9.1 distribution is in the 'gdb-9.1'
+   For example, the GDB version 9.2 distribution is in the 'gdb-9.2'
 directory.  That directory contains:
 
-'gdb-9.1/configure (and supporting files)'
+'gdb-9.2/configure (and supporting files)'
      script for configuring GDB and all its supporting libraries
 
-'gdb-9.1/gdb'
+'gdb-9.2/gdb'
      the source specific to GDB itself
 
-'gdb-9.1/bfd'
+'gdb-9.2/bfd'
      source for the Binary File Descriptor library
 
-'gdb-9.1/include'
+'gdb-9.2/include'
      GNU include files
 
-'gdb-9.1/libiberty'
+'gdb-9.2/libiberty'
      source for the '-liberty' free software library
 
-'gdb-9.1/opcodes'
+'gdb-9.2/opcodes'
      source for the library of opcode tables and disassemblers
 
-'gdb-9.1/readline'
+'gdb-9.2/readline'
      source for the GNU command-line interface
 
    There may be other subdirectories as well.
 
    The simplest way to configure and build GDB is to run 'configure'
 from the 'gdb-VERSION-NUMBER' source directory, which in this example is
-the 'gdb-9.1' directory.
+the 'gdb-9.2' directory.
 
    First switch to the 'gdb-VERSION-NUMBER' source directory if you are
 not already in it; then run 'configure'.  Pass the identifier for the
@@ -42289,7 +42289,7 @@ platform on which GDB will run as an argument.
 
    For example:
 
-     cd gdb-9.1
+     cd gdb-9.2
      ./configure
      make
 
@@ -42337,13 +42337,13 @@ to specify a path to find 'configure' itself from your working
 directory.  If the path to 'configure' would be the same as the argument
 to '--srcdir', you can leave out the '--srcdir' option; it is assumed.)
 
-   For example, with version 9.1, you can build GDB in a separate
+   For example, with version 9.2, you can build GDB in a separate
 directory for a Sun 4 like this:
 
-     cd gdb-9.1
+     cd gdb-9.2
      mkdir ../gdb-sun4
      cd ../gdb-sun4
-     ../gdb-9.1/configure
+     ../gdb-9.2/configure
      make
 
    When 'configure' builds a configuration using a remote source
@@ -42354,7 +42354,7 @@ the example, you'd find the Sun 4 library 'libiberty.a' in the directory
 
    Make sure that your path to the 'configure' script has just one
 instance of 'gdb' in it.  If your path to 'configure' looks like
-'../gdb-9.1/gdb/configure', you are configuring only one subdirectory of
+'../gdb-9.2/gdb/configure', you are configuring only one subdirectory of
 GDB, not the whole package.  This leads to build errors about missing
 include files such as 'bfd/bfd.h'.
 
@@ -42370,8 +42370,8 @@ a configured directory--whatever directory you were in when you called
 
    The 'Makefile' that 'configure' generates in each source directory
 also runs recursively.  If you type 'make' in a source directory such as
-'gdb-9.1' (or in a separate configured directory configured with
-'--srcdir=DIRNAME/gdb-9.1'), you will build all the required libraries,
+'gdb-9.2' (or in a separate configured directory configured with
+'--srcdir=DIRNAME/gdb-9.2'), you will build all the required libraries,
 and then build GDB.
 
    When you have multiple hosts or targets configured in separate
@@ -42415,8 +42415,8 @@ you can use it to test your guesses on abbreviations--for example:
      % sh config.sub i986v
      Invalid configuration `i986v': machine `i986v' not recognized
 
-'config.sub' is also distributed in the GDB source directory ('gdb-9.1',
-for version 9.1).
+'config.sub' is also distributed in the GDB source directory ('gdb-9.2',
+for version 9.2).
 
 
 File: gdb.info,  Node: Configure Options,  Next: System-wide configuration,  Prev: Config Names,  Up: Installing GDB
