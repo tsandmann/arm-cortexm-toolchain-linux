@@ -5,7 +5,7 @@
 ;;; This file should be parsed by the same gengtype which wrote it.
 
 (!version  "10.2.0")
-(!srcdir  "/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc")
+(!srcdir  "/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc")
 (!languages 11 ada brig c cp d fortran go jit lto objc objcp)
 (!fileslist 217
  (!srcfile 2047  "../libcpp/include/line-map.h")
@@ -479,11 +479,11 @@
                       (!srcfileloc  "tree-core.h" 984)
                       nil )
                      (!pair  "u"
-                      (!type union 26 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:986"
+                      (!type union 26 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:986"
                        (!srcfileloc  "tree-core.h" 1073)
                        (!fields 9 
                         (!pair  "bits"
-                         (!type struct 27 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:989"
+                         (!type struct 27 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:989"
                           (!srcfileloc  "tree-core.h" 1012)
                           (!fields 16 
                            (!pair  "lang_flag_0"
@@ -555,7 +555,7 @@
                          (!srcfileloc  "tree-core.h" 1012)
                          nil )
                         (!pair  "int_length"
-                         (!type struct 28 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:1019"
+                         (!type struct 28 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:1019"
                           (!srcfileloc  "tree-core.h" 1033)
                           (!fields 3 
                            (!pair  "unextended"
@@ -579,7 +579,7 @@
                          (!srcfileloc  "tree-core.h" 1036)
                          nil )
                         (!pair  "vector_cst"
-                         (!type struct 29 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:1039"
+                         (!type struct 29 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:1039"
                           (!srcfileloc  "tree-core.h" 1048)
                           (!fields 3 
                            (!pair  "log2_npatterns"
@@ -615,7 +615,7 @@
                          (!srcfileloc  "tree-core.h" 1060)
                          nil )
                         (!pair  "dependence_info"
-                         (!type struct 30 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:1069"
+                         (!type struct 30 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:1069"
                           (!srcfileloc  "tree-core.h" 1072)
                           (!fields 2 
                            (!pair  "clique"
@@ -1972,7 +1972,7 @@
                           (!srcfileloc  "rtl.h" 402)
                           nil )
                          (!pair  "u2"
-                          (!type union 103 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/rtl.h:404"
+                          (!type union 103 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/rtl.h:404"
                            (!srcfileloc  "rtl.h" 438)
                            (!fields 6 
                             (!pair  "original_regno"
@@ -1996,7 +1996,7 @@
                              (!srcfileloc  "rtl.h" 424)
                              nil )
                             (!pair  "const_vector"
-                             (!type struct 104 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/rtl.h:428"
+                             (!type struct 104 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/rtl.h:428"
                               (!srcfileloc  "rtl.h" 437)
                               (!fields 3 
                                (!pair  "npatterns"
@@ -6184,7 +6184,7 @@
                                        )
                                       )
                                       (!pair  "x"
-                                       (!type struct 294 nil  gc_used "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/basic-block.h:137"
+                                       (!type struct 294 nil  gc_used "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/basic-block.h:137"
                                         (!srcfileloc  "basic-block.h" 140)
                                         (!fields 2 
                                          (!pair  "head_"
@@ -9288,7 +9288,7 @@
                                       (!srcfileloc  "dwarf2out.h" 60)
                                       nil )
                                      (!pair  "dw_cfi_oprnd1"
-                                      (!type union 480 nil  gc_used "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/dwarf2out.h:50"
+                                      (!type union 480 nil  gc_used "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/dwarf2out.h:50"
                                        (!srcfileloc  "dwarf2out.h" 57)
                                        (!fields 5 
                                         (!pair  "dw_cfi_reg_num"
@@ -9912,7 +9912,7 @@
                                                       (!srcfileloc  "dwarf2out.h" 186)
                                                       nil )
                                                      (!pair  "v"
-                                                      (!type union 513 nil  gc_used "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/dwarf2out.h:188"
+                                                      (!type union 513 nil  gc_used "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/dwarf2out.h:188"
                                                        (!srcfileloc  "dwarf2out.h" 191)
                                                        (!fields 2 
                                                         (!pair  "sval"
@@ -11373,7 +11373,7 @@
                          )
                         )
                         (!pair  "loc"
-                         (!type union 566 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:1508"
+                         (!type union 566 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-core.h:1508"
                           (!srcfileloc  "tree-core.h" 1508)
                           (!fields 2 
                            (!pair  "stmt"
@@ -14101,7 +14101,7 @@
                                (!srcfileloc  "c/c-decl.c" 202)
                                (!fields 11 
                                 (!pair  "u"
-                                 (!type union 646 nil  gc_used "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/c/c-decl.c:188"
+                                 (!type union 646 nil  gc_used "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/c/c-decl.c:188"
                                   (!srcfileloc  "c/c-decl.c" 191)
                                   (!fields 2 
                                    (!pair  "type"
@@ -15428,7 +15428,7 @@
   )
   nil 2047 nil nil )
  
- (!type struct 700 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/../libcpp/include/line-map.h:1251"nil 
+ (!type struct 700 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/../libcpp/include/line-map.h:1251"nil 
   (!fields 0 )
   nil 0 nil nil )
  
@@ -15520,11 +15520,11 @@
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 718 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/../libcpp/include/cpplib.h:1238"nil 
+ (!type struct 718 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/../libcpp/include/cpplib.h:1238"nil 
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 719 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/../libcpp/include/cpplib.h:1249"nil 
+ (!type struct 719 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/../libcpp/include/cpplib.h:1249"nil 
   (!fields 0 )
   nil 0 nil nil )
  
@@ -15978,7 +15978,7 @@
     (!srcfileloc  "gimple.h" 360)
     nil )
    (!pair  "u"
-    (!type union 772 nil  gc_used "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/gimple.h:363"
+    (!type union 772 nil  gc_used "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/gimple.h:363"
      (!srcfileloc  "gimple.h" 366)
      (!fields 2 
       (!pair  "fntype"
@@ -17424,7 +17424,7 @@
  
  (!type already_seen 426)
  
- (!type struct 859 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm.h:1556"nil 
+ (!type struct 859 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm.h:1556"nil 
   (!fields 0 )
   nil 0 nil nil )
  
@@ -23070,7 +23070,7 @@
   (!fields 0 )
   nil 0 nil nil )
  
- (!type union 1409 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/mcf.c:343"nil 
+ (!type union 1409 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/mcf.c:343"nil 
   (!fields 0 )
   nil 0 nil )
  
@@ -23471,7 +23471,7 @@
   (!fields 0 )
   nil 0 nil nil )
  
- (!type union 1464 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-eh.c:53"nil 
+ (!type union 1464 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/tree-eh.c:53"nil 
   (!fields 0 )
   nil 0 nil )
  
@@ -23899,11 +23899,11 @@
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 1549 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm.c:2458"nil 
+ (!type struct 1549 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm.c:2458"nil 
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 1550 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm.c:3915"nil 
+ (!type struct 1550 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm.c:3915"nil 
   (!fields 0 )
   nil 0 nil nil )
  
@@ -24762,11 +24762,11 @@
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 1694 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm-builtins.c:901"nil 
+ (!type struct 1694 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm-builtins.c:901"nil 
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 1695 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm-builtins.c:994"nil 
+ (!type struct 1695 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/config/arm/arm-builtins.c:994"nil 
   (!fields 0 )
   nil 0 nil nil )
  
@@ -24903,7 +24903,7 @@
   )
  )
  
- (!type struct 1720 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/ada/gcc-interface/decl.c:257"nil 
+ (!type struct 1720 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/ada/gcc-interface/decl.c:257"nil 
   (!fields 0 )
   nil 0 nil nil )
  
@@ -25742,7 +25742,7 @@
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 1813 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/c/c-parser.c:7830"nil 
+ (!type struct 1813 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/c/c-parser.c:7830"nil 
   (!fields 0 )
   nil 0 nil nil )
  
@@ -28003,7 +28003,7 @@
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 2052 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/fortran/trans.h:33"nil 
+ (!type struct 2052 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/fortran/trans.h:33"nil 
   (!fields 0 )
   nil 0 nil nil )
  
@@ -28031,11 +28031,11 @@
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 2059 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/fortran/trans.h:401"nil 
+ (!type struct 2059 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/fortran/trans.h:401"nil 
   (!fields 0 )
   nil 0 nil nil )
  
- (!type struct 2060 nil  gc_unused "anonymous:/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm7f-eabi/src/gcc/gcc/fortran/trans.h:413"nil 
+ (!type struct 2060 nil  gc_unused "anonymous:/data/build/build/arm-cortexm7f-eabi/src/gcc/gcc/fortran/trans.h:413"nil 
   (!fields 0 )
   nil 0 nil nil )
  

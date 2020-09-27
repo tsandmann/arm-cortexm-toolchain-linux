@@ -1,5 +1,5 @@
 /* Generated automatically by the program 'build/genpreds'
-   from the machine description file '/home/ts/src/ct-ng/arm-none-eabi/build/arm-cortexm4f-eabi/src/gcc/gcc/config/arm/arm.md'.  */
+   from the machine description file '/data/build/build/arm-cortexm4f-eabi/src/gcc/gcc/config/arm/arm.md'.  */
 
 #ifndef GCC_TM_PREDS_H
 #define GCC_TM_PREDS_H
