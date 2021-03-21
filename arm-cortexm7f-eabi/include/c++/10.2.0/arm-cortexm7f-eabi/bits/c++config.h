@@ -1723,6 +1723,9 @@ namespace std
 /* Define if sendfile is available in <sys/sendfile.h>. */
 /* #undef _GLIBCXX_USE_SENDFILE */
 
+/* Define to restrict std::__basic_file<> to stdio APIs. */
+/* #undef _GLIBCXX_USE_STDIO_PURE */
+
 /* Define if struct stat has timespec members. */
 /* #undef _GLIBCXX_USE_ST_MTIM */
 
