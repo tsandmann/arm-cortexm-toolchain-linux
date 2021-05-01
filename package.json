@@ -2,7 +2,7 @@
     "name": "toolchain-arm-cortexm-linux",
     "description": "Cross-compiler toolchain for Linux (built on RHEL 8) host and arm-none-eabi targets optimized for cortex-m4f and cortex-m7f.",
     "url": "https://github.com/tsandmann/arm-cortexm-toolchain-linux.git",
-    "version": "10.3.0",
+    "version": "11.1.0",
     "license": "GPL-2.0-or-later",
     "system": "linux_x86_64"
 }
