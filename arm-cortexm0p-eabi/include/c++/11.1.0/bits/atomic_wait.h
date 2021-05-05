@@ -59,7 +59,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     using __platform_wait_t = int;
     static constexpr size_t __platform_wait_alignment = 4;
 #else
+#if __GCC_ATOMIC_LLONG_LOCK_FREE == 2
     using __platform_wait_t = uint64_t;
+#else
+    using __platform_wait_t = uint32_t;
+#endif
     static constexpr size_t __platform_wait_alignment
       = __alignof__(__platform_wait_t);
 #endif
