@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "GDB 1"
-.TH GDB 1 "2021-11-16" "gdb-9.2" "GNU Development Tools"
+.TH GDB 1 "2021-09-13" "gdb-11.1" "GNU Development Tools"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -168,7 +168,7 @@ Examine what has happened, when your program has stopped.
 Change things in your program, so you can experiment with correcting the
 effects of one bug and go on to learn about another.
 .PP
-You can use \s-1GDB\s0 to debug programs written in C, C@t{++}, Fortran and
+You can use \s-1GDB\s0 to debug programs written in C, \*(C+, Fortran and
 Modula\-2.
 .PP
 \&\s-1GDB\s0 is invoked with the shell command \f(CW\*(C`gdb\*(C'\fR.  Once started, it reads
@@ -316,14 +316,17 @@ Execute given \s-1GDB\s0 \fIcommand\fR.
 Add \fIdirectory\fR to the path to search for source files.
 .IP "\fB\-nh\fR" 4
 .IX Item "-nh"
-Do not execute commands from \fI~/.gdbinit\fR.
+Do not execute commands from \fI~/.config/gdb/gdbinit\fR,
+\&\fI~/.gdbinit\fR, \fI~/.config/gdb/gdbearlyinit\fR, or
+\&\fI~/.gdbearlyinit\fR
 .IP "\fB\-nx\fR" 4
 .IX Item "-nx"
 .PD 0
 .IP "\fB\-n\fR" 4
 .IX Item "-n"
 .PD
-Do not execute commands from any \fI.gdbinit\fR initialization files.
+Do not execute commands from any \fI.gdbinit\fR or
+\&\fI.gdbearlyinit\fR initialization files.
 .IP "\fB\-quiet\fR" 4
 .IX Item "-quiet"
 .PD 0
@@ -390,7 +393,7 @@ should give you access to the complete manual.
 Richard M. Stallman and Roland H. Pesch, July 1991.
 .SH "COPYRIGHT"
 .IX Header "COPYRIGHT"
-Copyright (c) 1988\-2020 Free Software Foundation, Inc.
+Copyright (c) 1988\-2021 Free Software Foundation, Inc.
 .PP
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the \s-1GNU\s0 Free Documentation License, Version 1.3 or

@@ -89,7 +89,7 @@
 /* #undef _WANT_REENT_GLOBAL_STDIO_STREAMS */
 
 /* Define if small footprint nano-formatted-IO implementation used.  */
-#define _NANO_FORMATTED_IO 1
+/* #undef _NANO_FORMATTED_IO */
 
 /* Define if using retargetable functions for default lock routines.  */
 #define _RETARGETABLE_LOCKING 1
