@@ -105,13 +105,6 @@ struct _atexit {
 # define _ATEXIT_INIT {_NULL, 0, {_NULL}, {{_NULL}, {_NULL}, 0, 0}}
 #endif
 
-#ifdef _REENT_GLOBAL_ATEXIT
-# define _REENT_INIT_ATEXIT
-#else
-# define _REENT_INIT_ATEXIT \
-  _NULL, _ATEXIT_INIT,
-#endif
-
 /*
  * Stdio buffers.
  *
@@ -175,7 +168,7 @@ extern void   __sinit (struct _reent *);
 # define _REENT_SMALL_CHECK_INIT(ptr)		\
   do						\
     {						\
-      if ((ptr) && !(ptr)->__sdidinit)		\
+      if ((ptr) && !(ptr)->__cleanup)		\
 	__sinit (ptr);				\
     }						\
   while (0)
@@ -293,12 +286,18 @@ typedef struct __sFILE   __FILE;
 #endif /* __LARGE64_FILES */
 #endif /* !__CUSTOM_FILE_IO__ */
 
+#ifdef _REENT_GLOBAL_STDIO_STREAMS
+extern __FILE __sf[3];
+#endif
+
 struct _glue
 {
   struct _glue *_next;
   int _niobs;
   __FILE *_iobs;
 };
+
+extern struct _glue __sglue;
 
 /*
  * rand48 family support
@@ -335,6 +334,18 @@ struct _rand48 {
 #define _REENT_EMERGENCY_SIZE 25
 #define _REENT_ASCTIME_SIZE 26
 #define _REENT_SIGNAL_SIZE 24
+
+#ifdef _REENT_BACKWARD_BINARY_COMPAT
+#define _REENT_INIT_RESERVED_0 0,
+#define _REENT_INIT_RESERVED_1 0,
+#define _REENT_INIT_RESERVED_2 0,
+#define _REENT_INIT_RESERVED_6_7 _NULL, _ATEXIT_INIT,
+#else
+#define _REENT_INIT_RESERVED_0 /* Nothing to initialize */
+#define _REENT_INIT_RESERVED_1 /* Nothing to initialize */
+#define _REENT_INIT_RESERVED_2 /* Nothing to initialize */
+#define _REENT_INIT_RESERVED_6_7 /* Nothing to initialize */
+#endif
 
 /*
  * struct _reent
@@ -389,9 +400,10 @@ struct _reent
 
   char *_emergency;
 
-  int __sdidinit;		/* 1 means stdio has been init'd */
-
-  int _unspecified_locale_info;	/* unused, reserved for locale stuff */
+#ifdef _REENT_BACKWARD_BINARY_COMPAT
+  int _reserved_0;
+  int _reserved_1;
+#endif
   struct __locale_t *_locale;/* per-thread locale */
 
   struct _mprec *_mp;
@@ -409,13 +421,12 @@ struct _reent
   char *_asctime_buf;
 
   /* signal info */
-  void (**(_sig_func))(int);
+  void (** _sig_func)(int);
 
-# ifndef _REENT_GLOBAL_ATEXIT
-  /* atexit stuff */
-  struct _atexit *_atexit;
-  struct _atexit _atexit0;
-# endif
+#ifdef _REENT_BACKWARD_BINARY_COMPAT
+  struct _atexit *_reserved_6;
+  struct _atexit _reserved_7;
+#endif
 
   struct _glue __sglue;			/* root of glue chain */
   __FILE *__sf;			        /* file descriptors */
@@ -424,7 +435,6 @@ struct _reent
 };
 
 #ifdef _REENT_GLOBAL_STDIO_STREAMS
-extern __FILE __sf[3];
 
 # define _REENT_INIT(var) \
   { 0, \
@@ -433,8 +443,8 @@ extern __FILE __sf[3];
     &__sf[2], \
     0,   \
     _NULL, \
-    0, \
-    0, \
+    _REENT_INIT_RESERVED_0 \
+    _REENT_INIT_RESERVED_1 \
     _NULL, \
     _NULL, \
     _NULL, \
@@ -445,7 +455,7 @@ extern __FILE __sf[3];
     _NULL, \
     _NULL, \
     _NULL, \
-    _REENT_INIT_ATEXIT \
+    _REENT_INIT_RESERVED_6_7 \
     {_NULL, 0, _NULL}, \
     _NULL, \
     _NULL, \
@@ -471,8 +481,8 @@ extern const struct __sFILE_fake __sf_fake_stderr;
     (__FILE *)&__sf_fake_stderr, \
     0, \
     _NULL, \
-    0, \
-    0, \
+    _REENT_INIT_RESERVED_0 \
+    _REENT_INIT_RESERVED_1 \
     _NULL, \
     _NULL, \
     _NULL, \
@@ -483,7 +493,7 @@ extern const struct __sFILE_fake __sf_fake_stderr;
     _NULL, \
     _NULL, \
     _NULL, \
-    _REENT_INIT_ATEXIT \
+    _REENT_INIT_RESERVED_6_7 \
     {_NULL, 0, _NULL}, \
     _NULL, \
     _NULL, \
@@ -622,11 +632,14 @@ struct _reent
   int  _inc;			/* used by tmpnam */
   char _emergency[_REENT_EMERGENCY_SIZE];
 
-  /* TODO */
-  int _unspecified_locale_info;	/* unused, reserved for locale stuff */
+#ifdef _REENT_BACKWARD_BINARY_COMPAT
+  int _reserved_1;
+#endif
   struct __locale_t *_locale;/* per-thread locale */
 
-  int __sdidinit;		/* 1 means stdio has been init'd */
+#ifdef _REENT_BACKWARD_BINARY_COMPAT
+  int _reserved_0;
+#endif
 
   void (*__cleanup) (struct _reent *);
 
@@ -644,7 +657,9 @@ struct _reent
     {
       struct
         {
-          unsigned int _unused_rand;
+#ifdef _REENT_BACKWARD_BINARY_COMPAT
+          unsigned int _reserved_2;
+#endif
           char * _strtok_last;
           char _asctime_buf[_REENT_ASCTIME_SIZE];
           struct __tm _localtime_buf;
@@ -664,22 +679,19 @@ struct _reent
           _mbstate_t _wcsrtombs_state;
 	  int _h_errno;
         } _reent;
-  /* Two next two fields were once used by malloc.  They are no longer
-     used. They are used to preserve the space used before so as to
-     allow addition of new reent fields and keep binary compatibility.   */
+#ifdef _REENT_BACKWARD_BINARY_COMPAT
       struct
         {
-#define _N_LISTS 30
-          unsigned char * _nextf[_N_LISTS];
-          unsigned int _nmalloc[_N_LISTS];
-        } _unused;
+          unsigned char * _reserved_3[30];
+          unsigned int _reserved_4[30];
+        } _reserved_5;
+#endif
     } _new;
 
-# ifndef _REENT_GLOBAL_ATEXIT
-  /* atexit stuff */
-  struct _atexit *_atexit;	/* points to head of LIFO stack */
-  struct _atexit _atexit0;	/* one guaranteed table, required by ANSI */
-# endif
+#ifdef _REENT_BACKWARD_BINARY_COMPAT
+  struct _atexit *_reserved_6;
+  struct _atexit _reserved_7;
+#endif
 
   /* signal info */
   void (**_sig_func)(int);
@@ -687,17 +699,22 @@ struct _reent
   /* These are here last so that __FILE can grow without changing the offsets
      of the above members (on the off chance that future binary compatibility
      would be broken otherwise).  */
-  struct _glue __sglue;		/* root of glue chain */
 # ifndef _REENT_GLOBAL_STDIO_STREAMS
+  struct _glue __sglue;		/* root of glue chain */
   __FILE __sf[3];  		/* first three file descriptors */
 # endif
 };
 
 #ifdef _REENT_GLOBAL_STDIO_STREAMS
-extern __FILE __sf[3];
 #define _REENT_STDIO_STREAM(var, index) &__sf[index]
+#define _REENT_INIT_SGLUE(_ptr) /* nothing to initialize */
+#define _REENT_INIT_SGLUE_ZEROED(_ptr) /* nothing to set */
 #else
 #define _REENT_STDIO_STREAM(var, index) &(var)->__sf[index]
+#define _REENT_INIT_SGLUE(_ptr) , { _NULL, 3, &(_ptr)->__sf[0] }
+#define _REENT_INIT_SGLUE_ZEROED(_ptr) \
+  (_ptr)->__sglue._niobs = 3; \
+  (_ptr)->__sglue._iobs = &(_ptr)->__sf[0];
 #endif
 
 #define _REENT_INIT(var) \
@@ -707,9 +724,9 @@ extern __FILE __sf[3];
     _REENT_STDIO_STREAM(&(var), 2), \
     0, \
     "", \
-    0, \
+    _REENT_INIT_RESERVED_1 \
     _NULL, \
-    0, \
+    _REENT_INIT_RESERVED_0 \
     _NULL, \
     _NULL, \
     0, \
@@ -719,7 +736,7 @@ extern __FILE __sf[3];
     _NULL, \
     { \
       { \
-        0, \
+        _REENT_INIT_RESERVED_2 \
         _NULL, \
         "", \
         {0, 0, 0, 0, 0, 0, 0, 0, 0}, \
@@ -743,9 +760,9 @@ extern __FILE __sf[3];
         {0, {0}} \
       } \
     }, \
-    _REENT_INIT_ATEXIT \
-    _NULL, \
-    {_NULL, 0, _NULL} \
+    _REENT_INIT_RESERVED_6_7 \
+    _NULL \
+    _REENT_INIT_SGLUE(&(var)) \
   }
 
 #define _REENT_INIT_PTR_ZEROED(var) \
@@ -760,6 +777,7 @@ extern __FILE __sf[3];
     (var)->_new._reent._r48._mult[1] = _RAND48_MULT_1; \
     (var)->_new._reent._r48._mult[2] = _RAND48_MULT_2; \
     (var)->_new._reent._r48._add = _RAND48_ADD; \
+    _REENT_INIT_SGLUE_ZEROED(var) \
   }
 
 #define _REENT_CHECK_RAND48(ptr)	/* nothing */
@@ -817,9 +835,19 @@ extern __FILE __sf[3];
 #endif
 
 extern struct _reent *_impure_ptr __ATTRIBUTE_IMPURE_PTR__;
-extern struct _reent *const _global_impure_ptr __ATTRIBUTE_IMPURE_PTR__;
+
+#ifndef __ATTRIBUTE_IMPURE_DATA__
+#define __ATTRIBUTE_IMPURE_DATA__
+#endif
+
+extern struct _reent _impure_data __ATTRIBUTE_IMPURE_DATA__;
+
+extern void (*__stdio_exit_handler) (void);
 
 void _reclaim_reent (struct _reent *);
+
+extern int _fwalk_sglue (struct _reent *, int (*)(struct _reent *, __FILE *),
+			 struct _glue *);
 
 /* #define _REENT_ONLY define this to get only reentrant routines */
 
@@ -832,14 +860,10 @@ void _reclaim_reent (struct _reent *);
 # define _REENT _impure_ptr
 #endif /* __SINGLE_THREAD__ || !__DYNAMIC_REENT__ */
 
-#define _GLOBAL_REENT _global_impure_ptr
+#define _GLOBAL_REENT (&_impure_data)
 
-#ifdef _REENT_GLOBAL_ATEXIT
-extern struct _atexit *_global_atexit; /* points to head of LIFO stack */
-# define _GLOBAL_ATEXIT _global_atexit
-#else
-# define _GLOBAL_ATEXIT (_GLOBAL_REENT->_atexit)
-#endif
+extern struct _atexit *__atexit; /* points to head of LIFO stack */
+extern struct _atexit __atexit0; /* one guaranteed table, required by ANSI */
 
 #ifdef __cplusplus
 }

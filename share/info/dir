@@ -44,11 +44,15 @@ Individual utilities
                                                   resources.
 * windres: (binutils)windres.                   Manipulate Windows resources.
 
+Miscellaneous
+* Embed with GNU: (porting-).   Embed with GNU
+
 Software development
 * Annotate: (annotate).         The obsolete annotation interface.
 * As: (as).                     The GNU assembler.
 * Bfd: (bfd).                   The Binary File Descriptor library.
 * Binutils: (binutils).         The GNU binary utilities.
+* CTF: (ctf-spec).              The CTF file format.
 * Cpp: (cpp).                   The GNU C preprocessor.
 * Cpplib: (cppinternals).       Cpplib internals.
 * Gas: (as).                    The GNU assembler.
