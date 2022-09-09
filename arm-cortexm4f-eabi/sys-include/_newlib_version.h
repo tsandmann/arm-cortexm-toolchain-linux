@@ -9,4 +9,3 @@
 #define __NEWLIB_PATCHLEVEL__ 0
 
 #endif /* !_NEWLIB_VERSION_H__ */
-
