@@ -30,7 +30,7 @@
 /* #undef _ELIX_LEVEL */
 
 /* Define if fseek functions support seek optimization. */
-#define _FSEEK_OPTIMIZATION 1
+/* #undef _FSEEK_OPTIMIZATION */
 
 /* Define if ivo supported in streamio. */
 /* #undef _FVWRITE_IN_STREAMIO */
@@ -380,7 +380,7 @@
 
 /* Enable C99 formats support (e.g. %a, %zu, ...) in IO functions like
    printf/scanf. */
-#define _WANT_IO_C99_FORMATS 1
+/* #undef _WANT_IO_C99_FORMATS */
 
 /* Define to enable long double type support in IO functions like
    printf/scanf. */
@@ -391,7 +391,7 @@
 #define _WANT_IO_LONG_LONG 1
 
 /* Positional argument support in printf functions enabled. */
-#define _WANT_IO_POS_ARGS 1
+/* #undef _WANT_IO_POS_ARGS */
 
 /* Define to enable backward binary compatibility for struct _reent. */
 /* #undef _WANT_REENT_BACKWARD_BINARY_COMPAT */

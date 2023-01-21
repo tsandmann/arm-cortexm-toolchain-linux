@@ -383,9 +383,7 @@ any target that has migrated to *note GNU Automake: (automake)Top.
 
    Libgloss automatically builds itself for all multilib configurations
 that the active toolchain supports.  This logic is provided by common
-code from the combined toolchain source tree.  This should *not* be
-confused with the Libgloss-specific 'multi-build.in' file.  That is used
-by a few ports to further produce multiple targets.
+code from the combined toolchain source tree.
 
 
 File: porting.info,  Node: GCC,  Next: Libraries,  Prev: Libgloss,  Up: Top
@@ -2134,33 +2132,33 @@ Node: PA-RISC9104
 Node: Building libgloss10633
 Node: Board support14243
 Node: Build System Internals16383
-Node: GCC18833
-Node: Overview20124
-Node: Options22353
-Node: GCC Options23029
-Node: GAS Options23324
-Node: LD Options23419
-Node: Libraries23494
-Node: Crt023806
-Node: Linker Scripts30071
-Node: What to do now34931
-Node: Libc35825
-Node: I/O Support37675
-Node: Memory Support37796
-Node: Misc Support39256
-Node: Debugging40429
-Node: GDB44000
-Node: GNU remote protocol45400
-Node: Exception handler51902
-Node: ROM monitors53321
-Node: Other remote protocols54299
-Node: Binutils54458
-Node: Code Listings54541
-Node: idp.ld55012
-Node: crt0.S56759
-Node: glue.c59362
-Node: mvme.S64250
-Node: io.c68397
-Node: leds.c69007
+Node: GCC18686
+Node: Overview19977
+Node: Options22206
+Node: GCC Options22882
+Node: GAS Options23177
+Node: LD Options23272
+Node: Libraries23347
+Node: Crt023659
+Node: Linker Scripts29924
+Node: What to do now34784
+Node: Libc35678
+Node: I/O Support37528
+Node: Memory Support37649
+Node: Misc Support39109
+Node: Debugging40282
+Node: GDB43853
+Node: GNU remote protocol45253
+Node: Exception handler51755
+Node: ROM monitors53174
+Node: Other remote protocols54152
+Node: Binutils54311
+Node: Code Listings54394
+Node: idp.ld54865
+Node: crt0.S56612
+Node: glue.c59215
+Node: mvme.S64103
+Node: io.c68250
+Node: leds.c68860
 
 End Tag Table
