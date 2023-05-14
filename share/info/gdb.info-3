@@ -1,6 +1,6 @@
-This is gdb.info, produced by makeinfo version 6.7 from gdb.texinfo.
+This is gdb.info, produced by makeinfo version 6.8 from gdb.texinfo.
 
-Copyright (C) 1988-2022 Free Software Foundation, Inc.
+Copyright (C) 1988-2023 Free Software Foundation, Inc.
 
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -21,9 +21,9 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Tenth Edition, of 'Debugging with GDB: the GNU
-Source-Level Debugger' for GDB (GDB) Version 12.1.
+Source-Level Debugger' for GDB (GDB) Version 13.1.
 
-   Copyright (C) 1988-2022 Free Software Foundation, Inc.
+   Copyright (C) 1988-2023 Free Software Foundation, Inc.
 
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -35,6 +35,395 @@ with the Back-Cover Texts as in (a) below.
    (a) The FSF's Back-Cover Text is: "You are free to copy and modify
 this GNU Manual.  Buying copies from GNU Press supports the FSF in
 developing GNU and promoting software freedom."
+
+
+File: gdb.info,  Node: Range Checking,  Prev: Type Checking,  Up: Checks
+
+15.3.2 An Overview of Range Checking
+------------------------------------
+
+In some languages (such as Modula-2), it is an error to exceed the
+bounds of a type; this is enforced with run-time checks.  Such range
+checking is meant to ensure program correctness by making sure
+computations do not overflow, or indices on an array element access do
+not exceed the bounds of the array.
+
+   For expressions you use in GDB commands, you can tell GDB to treat
+range errors in one of three ways: ignore them, always treat them as
+errors and abandon the expression, or issue warnings but evaluate the
+expression anyway.
+
+   A range error can result from numerical overflow, from exceeding an
+array index bound, or when you type a constant that is not a member of
+any type.  Some languages, however, do not treat overflows as an error.
+In many implementations of C, mathematical overflow causes the result to
+"wrap around" to lower values--for example, if M is the largest integer
+value, and S is the smallest, then
+
+     M + 1 => S
+
+   This, too, is specific to individual languages, and in some cases
+specific to individual compilers or machines.  *Note Supported
+Languages: Supported Languages, for further details on specific
+languages.
+
+   GDB provides some additional commands for controlling the range
+checker:
+
+'set check range auto'
+     Set range checking on or off based on the current working language.
+     *Note Supported Languages: Supported Languages, for the default
+     settings for each language.
+
+'set check range on'
+'set check range off'
+     Set range checking on or off, overriding the default setting for
+     the current working language.  A warning is issued if the setting
+     does not match the language default.  If a range error occurs and
+     range checking is on, then a message is printed and evaluation of
+     the expression is aborted.
+
+'set check range warn'
+     Output messages when the GDB range checker detects a range error,
+     but attempt to evaluate the expression anyway.  Evaluating the
+     expression may still be impossible for other reasons, such as
+     accessing memory that the process does not own (a typical example
+     from many Unix systems).
+
+'show check range'
+     Show the current setting of the range checker, and whether or not
+     it is being set automatically by GDB.
+
+
+File: gdb.info,  Node: Supported Languages,  Next: Unsupported Languages,  Prev: Checks,  Up: Languages
+
+15.4 Supported Languages
+========================
+
+GDB supports C, C++, D, Go, Objective-C, Fortran, OpenCL C, Pascal,
+Rust, assembly, Modula-2, and Ada.  Some GDB features may be used in
+expressions regardless of the language you use: the GDB '@' and '::'
+operators, and the '{type}addr' construct (*note Expressions:
+Expressions.) can be used with the constructs of any supported language.
+
+   The following sections detail to what degree each source language is
+supported by GDB.  These sections are not meant to be language tutorials
+or references, but serve only as a reference guide to what the GDB
+expression parser accepts, and what input and output formats should look
+like for different languages.  There are many good books written on each
+of these languages; please look to these for a language reference or
+tutorial.
+
+* Menu:
+
+* C::                           C and C++
+* D::                           D
+* Go::                          Go
+* Objective-C::                 Objective-C
+* OpenCL C::                    OpenCL C
+* Fortran::                     Fortran
+* Pascal::                      Pascal
+* Rust::                        Rust
+* Modula-2::                    Modula-2
+* Ada::                         Ada
+
+
+File: gdb.info,  Node: C,  Next: D,  Up: Supported Languages
+
+15.4.1 C and C++
+----------------
+
+Since C and C++ are so closely related, many features of GDB apply to
+both languages.  Whenever this is the case, we discuss those languages
+together.
+
+   The C++ debugging facilities are jointly implemented by the C++
+compiler and GDB.  Therefore, to debug your C++ code effectively, you
+must compile your C++ programs with a supported C++ compiler, such as
+GNU 'g++', or the HP ANSI C++ compiler ('aCC').
+
+* Menu:
+
+* C Operators::                 C and C++ operators
+* C Constants::                 C and C++ constants
+* C Plus Plus Expressions::     C++ expressions
+* C Defaults::                  Default settings for C and C++
+* C Checks::                    C and C++ type and range checks
+* Debugging C::                 GDB and C
+* Debugging C Plus Plus::       GDB features for C++
+* Decimal Floating Point::      Numbers in Decimal Floating Point format
+
+
+File: gdb.info,  Node: C Operators,  Next: C Constants,  Up: C
+
+15.4.1.1 C and C++ Operators
+............................
+
+Operators must be defined on values of specific types.  For instance,
+'+' is defined on numbers, but not on structures.  Operators are often
+defined on groups of types.
+
+   For the purposes of C and C++, the following definitions hold:
+
+   * _Integral types_ include 'int' with any of its storage-class
+     specifiers; 'char'; 'enum'; and, for C++, 'bool'.
+
+   * _Floating-point types_ include 'float', 'double', and 'long double'
+     (if supported by the target platform).
+
+   * _Pointer types_ include all types defined as '(TYPE *)'.
+
+   * _Scalar types_ include all of the above.
+
+The following operators are supported.  They are listed here in order of
+increasing precedence:
+
+','
+     The comma or sequencing operator.  Expressions in a comma-separated
+     list are evaluated from left to right, with the result of the
+     entire expression being the last expression evaluated.
+
+'='
+     Assignment.  The value of an assignment expression is the value
+     assigned.  Defined on scalar types.
+
+'OP='
+     Used in an expression of the form 'A OP= B', and translated to
+     'A = A OP B'.  'OP=' and '=' have the same precedence.  The
+     operator OP is any one of the operators '|', '^', '&', '<<', '>>',
+     '+', '-', '*', '/', '%'.
+
+'?:'
+     The ternary operator.  'A ? B : C' can be thought of as: if A then
+     B else C.  The argument A should be of an integral type.
+
+'||'
+     Logical OR.  Defined on integral types.
+
+'&&'
+     Logical AND.  Defined on integral types.
+
+'|'
+     Bitwise OR.  Defined on integral types.
+
+'^'
+     Bitwise exclusive-OR.  Defined on integral types.
+
+'&'
+     Bitwise AND.  Defined on integral types.
+
+'==, !='
+     Equality and inequality.  Defined on scalar types.  The value of
+     these expressions is 0 for false and non-zero for true.
+
+'<, >, <=, >='
+     Less than, greater than, less than or equal, greater than or equal.
+     Defined on scalar types.  The value of these expressions is 0 for
+     false and non-zero for true.
+
+'<<, >>'
+     left shift, and right shift.  Defined on integral types.
+
+'@'
+     The GDB "artificial array" operator (*note Expressions:
+     Expressions.).
+
+'+, -'
+     Addition and subtraction.  Defined on integral types,
+     floating-point types and pointer types.
+
+'*, /, %'
+     Multiplication, division, and modulus.  Multiplication and division
+     are defined on integral and floating-point types.  Modulus is
+     defined on integral types.
+
+'++, --'
+     Increment and decrement.  When appearing before a variable, the
+     operation is performed before the variable is used in an
+     expression; when appearing after it, the variable's value is used
+     before the operation takes place.
+
+'*'
+     Pointer dereferencing.  Defined on pointer types.  Same precedence
+     as '++'.
+
+'&'
+     Address operator.  Defined on variables.  Same precedence as '++'.
+
+     For debugging C++, GDB implements a use of '&' beyond what is
+     allowed in the C++ language itself: you can use '&(&REF)' to
+     examine the address where a C++ reference variable (declared with
+     '&REF') is stored.
+
+'-'
+     Negative.  Defined on integral and floating-point types.  Same
+     precedence as '++'.
+
+'!'
+     Logical negation.  Defined on integral types.  Same precedence as
+     '++'.
+
+'~'
+     Bitwise complement operator.  Defined on integral types.  Same
+     precedence as '++'.
+
+'., ->'
+     Structure member, and pointer-to-structure member.  For
+     convenience, GDB regards the two as equivalent, choosing whether to
+     dereference a pointer based on the stored type information.
+     Defined on 'struct' and 'union' data.
+
+'.*, ->*'
+     Dereferences of pointers to members.
+
+'[]'
+     Array indexing.  'A[I]' is defined as '*(A+I)'.  Same precedence as
+     '->'.
+
+'()'
+     Function parameter list.  Same precedence as '->'.
+
+'::'
+     C++ scope resolution operator.  Defined on 'struct', 'union', and
+     'class' types.
+
+'::'
+     Doubled colons also represent the GDB scope operator (*note
+     Expressions: Expressions.).  Same precedence as '::', above.
+
+   If an operator is redefined in the user code, GDB usually attempts to
+invoke the redefined version instead of using the operator's predefined
+meaning.
+
+
+File: gdb.info,  Node: C Constants,  Next: C Plus Plus Expressions,  Prev: C Operators,  Up: C
+
+15.4.1.2 C and C++ Constants
+............................
+
+GDB allows you to express the constants of C and C++ in the following
+ways:
+
+   * Integer constants are a sequence of digits.  Octal constants are
+     specified by a leading '0' (i.e. zero), and hexadecimal constants
+     by a leading '0x' or '0X'.  Constants may also end with a letter
+     'l', specifying that the constant should be treated as a 'long'
+     value.
+
+   * Floating point constants are a sequence of digits, followed by a
+     decimal point, followed by a sequence of digits, and optionally
+     followed by an exponent.  An exponent is of the form:
+     'e[[+]|-]NNN', where NNN is another sequence of digits.  The '+' is
+     optional for positive exponents.  A floating-point constant may
+     also end with a letter 'f' or 'F', specifying that the constant
+     should be treated as being of the 'float' (as opposed to the
+     default 'double') type; or with a letter 'l' or 'L', which
+     specifies a 'long double' constant.
+
+   * Enumerated constants consist of enumerated identifiers, or their
+     integral equivalents.
+
+   * Character constants are a single character surrounded by single
+     quotes ('''), or a number--the ordinal value of the corresponding
+     character (usually its ASCII value).  Within quotes, the single
+     character may be represented by a letter or by "escape sequences",
+     which are of the form '\NNN', where NNN is the octal representation
+     of the character's ordinal value; or of the form '\X', where 'X' is
+     a predefined special character--for example, '\n' for newline.
+
+     Wide character constants can be written by prefixing a character
+     constant with 'L', as in C. For example, 'L'x'' is the wide form of
+     'x'.  The target wide character set is used when computing the
+     value of this constant (*note Character Sets::).
+
+   * String constants are a sequence of character constants surrounded
+     by double quotes ('"').  Any valid character constant (as described
+     above) may appear.  Double quotes within the string must be
+     preceded by a backslash, so for instance '"a\"b'c"' is a string of
+     five characters.
+
+     Wide string constants can be written by prefixing a string constant
+     with 'L', as in C. The target wide character set is used when
+     computing the value of this constant (*note Character Sets::).
+
+   * Pointer constants are an integral value.  You can also write
+     pointers to constants using the C operator '&'.
+
+   * Array constants are comma-separated lists surrounded by braces '{'
+     and '}'; for example, '{1,2,3}' is a three-element array of
+     integers, '{{1,2}, {3,4}, {5,6}}' is a three-by-two array, and
+     '{&"hi", &"there", &"fred"}' is a three-element array of pointers.
+
+
+File: gdb.info,  Node: C Plus Plus Expressions,  Next: C Defaults,  Prev: C Constants,  Up: C
+
+15.4.1.3 C++ Expressions
+........................
+
+GDB expression handling can interpret most C++ expressions.
+
+     _Warning:_ GDB can only debug C++ code if you use the proper
+     compiler and the proper debug format.  Currently, GDB works best
+     when debugging C++ code that is compiled with the most recent
+     version of GCC possible.  The DWARF debugging format is preferred;
+     GCC defaults to this on most popular platforms.  Other compilers
+     and/or debug formats are likely to work badly or not at all when
+     using GDB to debug C++ code.  *Note Compilation::.
+
+  1. Member function calls are allowed; you can use expressions like
+
+          count = aml->GetOriginal(x, y)
+
+  2. While a member function is active (in the selected stack frame),
+     your expressions have the same namespace available as the member
+     function; that is, GDB allows implicit references to the class
+     instance pointer 'this' following the same rules as C++.  'using'
+     declarations in the current scope are also respected by GDB.
+
+  3. You can call overloaded functions; GDB resolves the function call
+     to the right definition, with some restrictions.  GDB does not
+     perform overload resolution involving user-defined type
+     conversions, calls to constructors, or instantiations of templates
+     that do not exist in the program.  It also cannot handle ellipsis
+     argument lists or default arguments.
+
+     It does perform integral conversions and promotions, floating-point
+     promotions, arithmetic conversions, pointer conversions,
+     conversions of class objects to base classes, and standard
+     conversions such as those of functions or arrays to pointers; it
+     requires an exact match on the number of function arguments.
+
+     Overload resolution is always performed, unless you have specified
+     'set overload-resolution off'.  *Note GDB Features for C++:
+     Debugging C Plus Plus.
+
+     You must specify 'set overload-resolution off' in order to use an
+     explicit function signature to call an overloaded function, as in
+          p 'foo(char,int)'('x', 13)
+
+     The GDB command-completion facility can simplify this; see *note
+     Command Completion: Completion.
+
+  4. GDB understands variables declared as C++ lvalue or rvalue
+     references; you can use them in expressions just as you do in C++
+     source--they are automatically dereferenced.
+
+     In the parameter list shown when GDB displays a frame, the values
+     of reference variables are not displayed (unlike other variables);
+     this avoids clutter, since references are often used for large
+     structures.  The _address_ of a reference variable is always shown,
+     unless you have specified 'set print address off'.
+
+  5. GDB supports the C++ name resolution operator '::'--your
+     expressions can use it just as expressions in your program do.
+     Since one scope may be defined in another, you can use '::'
+     repeatedly if necessary, for example in an expression like
+     'SCOPE1::SCOPE2::NAME'.  GDB also allows resolving name scope by
+     reference to source files, in both C and C++ debugging (*note
+     Program Variables: Variables.).
+
+  6. GDB performs argument-dependent lookup, following the C++
+     specification.
 
 
 File: gdb.info,  Node: C Defaults,  Next: C Checks,  Prev: C Plus Plus Expressions,  Up: C
@@ -430,24 +819,77 @@ File: gdb.info,  Node: Fortran,  Next: Pascal,  Prev: OpenCL C,  Up: Supported L
 15.4.6 Fortran
 --------------
 
-GDB can be used to debug programs written in Fortran, but it currently
-supports only the features of Fortran 77 language.
+GDB can be used to debug programs written in Fortran.  Note, that not
+all Fortran language features are available yet.
 
    Some Fortran compilers (GNU Fortran 77 and Fortran 95 compilers among
 them) append an underscore to the names of variables and functions.
 When you debug programs compiled by those compilers, you will need to
 refer to variables and functions with a trailing underscore.
 
+   Fortran symbols are usually case-insensitive, so GDB by default uses
+case-insensitive matching for Fortran symbols.  You can change that with
+the 'set case-insensitive' command, see *note Symbols::, for the
+details.
+
 * Menu:
 
+* Fortran Types::               Fortran builtin types
 * Fortran Operators::           Fortran operators and expressions
-* Fortran Defaults::            Default settings for Fortran
+* Fortran Intrinsics::          Fortran intrinsic functions
 * Special Fortran Commands::    Special GDB commands for Fortran
 
 
-File: gdb.info,  Node: Fortran Operators,  Next: Fortran Defaults,  Up: Fortran
+File: gdb.info,  Node: Fortran Types,  Next: Fortran Operators,  Up: Fortran
 
-15.4.6.1 Fortran Operators and Expressions
+15.4.6.1 Fortran Types
+......................
+
+In Fortran the primitive data-types have an associated 'KIND' type
+parameter, written as 'TYPE*KINDPARAM', 'TYPE*KINDPARAM', or in the
+GDB-only dialect 'TYPE_KINDPARAM'.  A concrete example would be
+''Real*4'', ''Real(kind=4)'', and ''Real_4''.  The kind of a type can be
+retrieved by using the intrinsic function 'KIND', see *note Fortran
+Intrinsics::.
+
+   Generally, the actual implementation of the 'KIND' type parameter is
+compiler specific.  In GDB the kind parameter is implemented in
+accordance with its use in the GNU 'gfortran' compiler.  Here, the kind
+parameter for a given TYPE specifies its size in memory -- a Fortran
+'Integer*4' or 'Integer(kind=4)' would be an integer type occupying 4
+bytes of memory.  An exception to this rule is the 'Complex' type for
+which the kind of the type does not specify its entire size, but the
+size of each of the two 'Real''s it is composed of.  A 'Complex*4' would
+thus consist of two 'Real*4's and occupy 8 bytes of memory.
+
+   For every type there is also a default kind associated with it,
+e.g. 'Integer' in GDB will internally be an 'Integer*4' (see the table
+below for default types).  The default types are the same as in GNU
+compilers but note, that the GNU default types can actually be changed
+by compiler flags such as '-fdefault-integer-8' and '-fdefault-real-8'.
+
+   Not every kind parameter is valid for every type and in GDB the
+following type kinds are available.
+
+'Integer'
+     'Integer*1', 'Integer*2', 'Integer*4', 'Integer*8', and 'Integer' =
+     'Integer*4'.
+
+'Logical'
+     'Logical*1', 'Logical*2', 'Logical*4', 'Logical*8', and 'Logical' =
+     'Logical*4'.
+
+'Real'
+     'Real*4', 'Real*8', 'Real*16', and 'Real' = 'Real*4'.
+
+'Complex'
+     'Complex*4', 'Complex*8', 'Complex*16', and 'Complex' =
+     'Complex*4'.
+
+
+File: gdb.info,  Node: Fortran Operators,  Next: Fortran Intrinsics,  Prev: Fortran Types,  Up: Fortran
+
+15.4.6.2 Fortran Operators and Expressions
 ..........................................
 
 Operators must be defined on values of specific types.  For instance,
@@ -473,20 +915,84 @@ arithmetic types.  Operators are often defined on groups of types.
      subroutines (internal subroutines).
 
 
-File: gdb.info,  Node: Fortran Defaults,  Next: Special Fortran Commands,  Prev: Fortran Operators,  Up: Fortran
+File: gdb.info,  Node: Fortran Intrinsics,  Next: Special Fortran Commands,  Prev: Fortran Operators,  Up: Fortran
 
-15.4.6.2 Fortran Defaults
-.........................
+15.4.6.3 Fortran Intrinsics
+...........................
 
-Fortran symbols are usually case-insensitive, so GDB by default uses
-case-insensitive matches for Fortran symbols.  You can change that with
-the 'set case-insensitive' command, see *note Symbols::, for the
-details.
+Fortran provides a large set of intrinsic procedures.  GDB implements an
+incomplete subset of those procedures and their overloads.  Some of
+these procedures take an optional 'KIND' parameter, see *note Fortran
+Types::.
+
+'ABS(A)'
+     Computes the absolute value of its argument A.  Currently not
+     supported for 'Complex' arguments.
+
+'ALLOCATE(ARRAY)'
+     Returns whether ARRAY is allocated or not.
+
+'ASSOCIATED(POINTER [, TARGET])'
+     Returns the association status of the pointer POINTER or, if TARGET
+     is present, whether POINTER is associated with the target TARGET.
+
+'CEILING(A [, KIND])'
+     Computes the least integer greater than or equal to A.  The
+     optional parameter KIND specifies the kind of the return type
+     'Integer(KIND)'.
+
+'CMPLX(X [, Y [, KIND]])'
+     Returns a complex number where X is converted to the real
+     component.  If Y is present it is converted to the imaginary
+     component.  If Y is not present then the imaginary component is set
+     to '0.0' except if X itself is of 'Complex' type.  The optional
+     parameter KIND specifies the kind of the return type
+     'Complex(KIND)'.
+
+'FLOOR(A [, KIND])'
+     Computes the greatest integer less than or equal to A.  The
+     optional parameter KIND specifies the kind of the return type
+     'Integer(KIND)'.
+
+'KIND(A)'
+     Returns the kind value of the argument A, see *note Fortran
+     Types::.
+
+'LBOUND(ARRAY [, DIM [, KIND]])'
+     Returns the lower bounds of an ARRAY, or a single lower bound along
+     the DIM dimension if present.  The optional parameter KIND
+     specifies the kind of the return type 'Integer(KIND)'.
+
+'LOC(X)'
+     Returns the address of X as an 'Integer'.
+
+'MOD(A, P)'
+     Computes the remainder of the division of A by P.
+
+'MODULO(A, P)'
+     Computes the A modulo P.
+
+'RANK(A)'
+     Returns the rank of a scalar or array (scalars have rank '0').
+
+'SHAPE(A)'
+     Returns the shape of a scalar or array (scalars have shape '()').
+
+'SIZE(ARRAY[, DIM [, KIND]])'
+     Returns the extent of ARRAY along a specified dimension DIM, or the
+     total number of elements in ARRAY if DIM is absent.  The optional
+     parameter KIND specifies the kind of the return type
+     'Integer(KIND)'.
+
+'UBOUND(ARRAY [, DIM [, KIND]])'
+     Returns the upper bounds of an ARRAY, or a single upper bound along
+     the DIM dimension if present.  The optional parameter KIND
+     specifies the kind of the return type 'Integer(KIND)'.
 
 
-File: gdb.info,  Node: Special Fortran Commands,  Prev: Fortran Defaults,  Up: Fortran
+File: gdb.info,  Node: Special Fortran Commands,  Prev: Fortran Intrinsics,  Up: Fortran
 
-15.4.6.3 Special Fortran Commands
+15.4.6.4 Special Fortran Commands
 .................................
 
 GDB has some commands to support Fortran-specific features, such as
@@ -543,8 +1049,8 @@ Type- and value-printing, and expression parsing, are reasonably
 complete.  However, there are a few peculiarities and holes to be aware
 of.
 
-   * Linespecs (*note Specify Location::) are never relative to the
-     current crate.  Instead, they act as if there were a global
+   * Linespecs (*note Location Specifications::) are never relative to
+     the current crate.  Instead, they act as if there were a global
      namespace of crates, somewhat similar to the way 'extern crate'
      behaves.
 
@@ -1547,7 +2053,7 @@ Threads::).  GDB provides the following task-related commands:
                The task is waiting for created tasks to complete
                activation.
 
-          'Accept Statement'
+          'Accept or Select Term'
                The task is waiting on an accept or selective wait
                statement.
 
@@ -1572,8 +2078,22 @@ Threads::).  GDB provides the following task-related commands:
                The task is sleeping waiting for tasks on terminate
                alternatives to finish terminating.
 
+          'Asynchronous Hold'
+               The task has been held by
+               'Ada.Asynchronous_Task_Control.Hold_Task'.
+
+          'Activating'
+               The task has been created and is being made runnable.
+
+          'Selective Wait'
+               The task is waiting in a selective wait statement.
+
           'Accepting RV with TASKNO'
                The task is accepting a rendez-vous with the task TASKNO.
+
+          'Waiting on RV with TASKNO'
+               The task is waiting for a rendez-vous with the task
+               TASKNO.
 
      Name
           Name of the task in the program.
@@ -1655,11 +2175,11 @@ Threads::).  GDB provides the following task-related commands:
 
      Flags '-c' and '-s' cannot be used together.
 
-'break LOCATION task TASKNO'
-'break LOCATION task TASKNO if ...'
+'break LOCSPEC task TASKNO'
+'break LOCSPEC task TASKNO if ...'
      These commands are like the 'break ... thread ...' command (*note
-     Thread Stops::).  The LOCATION argument specifies source lines, as
-     described in *note Specify Location::.
+     Thread Stops::).  *Note Location Specifications::, for the various
+     forms of LOCSPEC.
 
      Use the qualifier 'task TASKNO' with a breakpoint command to
      specify that you only want GDB to stop the program when a
@@ -2317,12 +2837,11 @@ looks up the value of 'x' in the scope of the file 'foo.c'.
 'disable type-printer NAME...'
      These commands can be used to enable or disable type printers.
 
-'info scope LOCATION'
-     List all the variables local to a particular scope.  This command
-     accepts a LOCATION argument--a function name, a source line, or an
-     address preceded by a '*', and prints all the variables local to
-     the scope defined by that location.  (*Note Specify Location::, for
-     details about supported forms of LOCATION.)  For example:
+'info scope LOCSPEC'
+     List all the variables local to the lexical scope of the code
+     location that results from resolving LOCSPEC.  *Note Location
+     Specifications::, for details about supported forms of LOCSPEC.
+     For example:
 
           (gdb) info scope command_line_handler
           Scope for command_line_handler:
@@ -2612,7 +3131,31 @@ looks up the value of 'x' in the scope of the file 'foo.c'.
 
      List the 'struct linetable' from all 'struct symtab' instances
      whose name matches REGEXP.  If REGEXP is not given, list the
-     'struct linetable' from all 'struct symtab'.
+     'struct linetable' from all 'struct symtab'.  For example:
+
+          (gdb) maint info line-table
+          objfile: /home/gnu/build/a.out ((struct objfile *) 0x6120000e0d40)
+          compunit_symtab: simple.cpp ((struct compunit_symtab *) 0x6210000ff450)
+          symtab: /home/gnu/src/simple.cpp ((struct symtab *) 0x6210000ff4d0)
+          linetable: ((struct linetable *) 0x62100012b760):
+          INDEX  LINE   ADDRESS            IS-STMT PROLOGUE-END
+          0      3      0x0000000000401110 Y
+          1      4      0x0000000000401114 Y       Y
+          2      9      0x0000000000401120 Y
+          3      10     0x0000000000401124 Y       Y
+          4      10     0x0000000000401129
+          5      15     0x0000000000401130 Y
+          6      16     0x0000000000401134 Y       Y
+          7      16     0x0000000000401139
+          8      21     0x0000000000401140 Y
+          9      22     0x000000000040114f Y       Y
+          10     22     0x0000000000401154
+          11     END    0x000000000040115a Y
+     The 'IS-STMT' column indicates if the address is a recommended
+     breakpoint location to represent a line or a statement.  The
+     'PROLOGUE-END' column indicates that a given address is an adequate
+     place to set a breakpoint at the first instruction following a
+     function prologue.
 
 'maint set symbol-cache-size SIZE'
      Set the size of the symbol cache to SIZE.  The default size is
@@ -2637,6 +3180,16 @@ looks up the value of 'x' in the scope of the file 'foo.c'.
      useful when collecting performance data.  The command 'maint
      flush-symbol-cache' is deprecated in favor of 'maint flush
      symbol-cache'..
+
+'maint set ignore-prologue-end-flag [on|off]'
+     Enable or disable the use of the 'PROLOGUE-END' flag from the
+     line-table.  When 'off' (the default), GDB uses the 'PROLOGUE-END'
+     flag to place breakpoints past the end of a function prologue.
+     When 'on', GDB ignores the flag and relies on prologue analyzers to
+     skip function prologues.
+
+'maint show ignore-prologue-end-flag'
+     Show whether GDB will ignore the 'PROLOGUE-END' flag.
 
 
 File: gdb.info,  Node: Altering,  Next: GDB Files,  Prev: Symbols,  Up: Top
@@ -2758,24 +3311,26 @@ Ordinarily, when you continue your program, you do so at the place where
 it stopped, with the 'continue' command.  You can instead continue at an
 address of your own choosing, with the following commands:
 
-'jump LOCATION'
-'j LOCATION'
-     Resume execution at LOCATION.  Execution stops again immediately if
-     there is a breakpoint there.  *Note Specify Location::, for a
-     description of the different forms of LOCATION.  It is common
-     practice to use the 'tbreak' command in conjunction with 'jump'.
-     *Note Setting Breakpoints: Set Breaks.
+'jump LOCSPEC'
+'j LOCSPEC'
+     Resume execution at the address of the code location that results
+     from resolving LOCSPEC.  *Note Location Specifications::, for a
+     description of the different forms of LOCSPEC.  If LOCSPEC resolves
+     to more than one address, the command aborts before jumping.
+     Execution stops again immediately if there is a breakpoint there.
+     It is common practice to use the 'tbreak' command in conjunction
+     with 'jump'.  *Note Setting Breakpoints: Set Breaks.
 
      The 'jump' command does not change the current stack frame, or the
      stack pointer, or the contents of any memory location or any
-     register other than the program counter.  If LOCATION is in a
-     different function from the one currently executing, the results
-     may be bizarre if the two functions expect different patterns of
-     arguments or of local variables.  For this reason, the 'jump'
-     command requests confirmation if the specified line is not in the
-     function currently executing.  However, even bizarre results are
-     predictable if you are well acquainted with the machine-language
-     code of your program.
+     register other than the program counter.  If LOCSPEC resolves to an
+     address in a different function from the one currently executing,
+     the results may be bizarre if the two functions expect different
+     patterns of arguments or of local variables.  For this reason, the
+     'jump' command requests confirmation if the jump address is not in
+     the function currently executing.  However, even bizarre results
+     are predictable if you are well acquainted with the
+     machine-language code of your program.
 
    On many systems, you can get much the same effect as the 'jump'
 command by storing a new value into the register '$pc'.  The difference
@@ -6603,541 +7158,4 @@ set the breakpoint at a raw memory address:
    The author of these extensions is not entirely convinced that setting
 a break point within a shared DLL like 'kernel32.dll' is completely
 safe.
-
-
-File: gdb.info,  Node: Hurd Native,  Next: Darwin,  Prev: Cygwin Native,  Up: Native
-
-21.1.5 Commands Specific to GNU Hurd Systems
---------------------------------------------
-
-This subsection describes GDB commands specific to the GNU Hurd native
-debugging.
-
-'set signals'
-'set sigs'
-     This command toggles the state of inferior signal interception by
-     GDB.  Mach exceptions, such as breakpoint traps, are not affected
-     by this command.  'sigs' is a shorthand alias for 'signals'.
-
-'show signals'
-'show sigs'
-     Show the current state of intercepting inferior's signals.
-
-'set signal-thread'
-'set sigthread'
-     This command tells GDB which thread is the 'libc' signal thread.
-     That thread is run when a signal is delivered to a running process.
-     'set sigthread' is the shorthand alias of 'set signal-thread'.
-
-'show signal-thread'
-'show sigthread'
-     These two commands show which thread will run when the inferior is
-     delivered a signal.
-
-'set stopped'
-     This commands tells GDB that the inferior process is stopped, as
-     with the 'SIGSTOP' signal.  The stopped process can be continued by
-     delivering a signal to it.
-
-'show stopped'
-     This command shows whether GDB thinks the debuggee is stopped.
-
-'set exceptions'
-     Use this command to turn off trapping of exceptions in the
-     inferior.  When exception trapping is off, neither breakpoints nor
-     single-stepping will work.  To restore the default, set exception
-     trapping on.
-
-'show exceptions'
-     Show the current state of trapping exceptions in the inferior.
-
-'set task pause'
-     This command toggles task suspension when GDB has control.  Setting
-     it to on takes effect immediately, and the task is suspended
-     whenever GDB gets control.  Setting it to off will take effect the
-     next time the inferior is continued.  If this option is set to off,
-     you can use 'set thread default pause on' or 'set thread pause on'
-     (see below) to pause individual threads.
-
-'show task pause'
-     Show the current state of task suspension.
-
-'set task detach-suspend-count'
-     This command sets the suspend count the task will be left with when
-     GDB detaches from it.
-
-'show task detach-suspend-count'
-     Show the suspend count the task will be left with when detaching.
-
-'set task exception-port'
-'set task excp'
-     This command sets the task exception port to which GDB will forward
-     exceptions.  The argument should be the value of the "send rights"
-     of the task.  'set task excp' is a shorthand alias.
-
-'set noninvasive'
-     This command switches GDB to a mode that is the least invasive as
-     far as interfering with the inferior is concerned.  This is the
-     same as using 'set task pause', 'set exceptions', and 'set signals'
-     to values opposite to the defaults.
-
-'info send-rights'
-'info receive-rights'
-'info port-rights'
-'info port-sets'
-'info dead-names'
-'info ports'
-'info psets'
-     These commands display information about, respectively, send
-     rights, receive rights, port rights, port sets, and dead names of a
-     task.  There are also shorthand aliases: 'info ports' for 'info
-     port-rights' and 'info psets' for 'info port-sets'.
-
-'set thread pause'
-     This command toggles current thread suspension when GDB has
-     control.  Setting it to on takes effect immediately, and the
-     current thread is suspended whenever GDB gets control.  Setting it
-     to off will take effect the next time the inferior is continued.
-     Normally, this command has no effect, since when GDB has control,
-     the whole task is suspended.  However, if you used 'set task pause
-     off' (see above), this command comes in handy to suspend only the
-     current thread.
-
-'show thread pause'
-     This command shows the state of current thread suspension.
-
-'set thread run'
-     This command sets whether the current thread is allowed to run.
-
-'show thread run'
-     Show whether the current thread is allowed to run.
-
-'set thread detach-suspend-count'
-     This command sets the suspend count GDB will leave on a thread when
-     detaching.  This number is relative to the suspend count found by
-     GDB when it notices the thread; use 'set thread
-     takeover-suspend-count' to force it to an absolute value.
-
-'show thread detach-suspend-count'
-     Show the suspend count GDB will leave on the thread when detaching.
-
-'set thread exception-port'
-'set thread excp'
-     Set the thread exception port to which to forward exceptions.  This
-     overrides the port set by 'set task exception-port' (see above).
-     'set thread excp' is the shorthand alias.
-
-'set thread takeover-suspend-count'
-     Normally, GDB's thread suspend counts are relative to the value GDB
-     finds when it notices each thread.  This command changes the
-     suspend counts to be absolute instead.
-
-'set thread default'
-'show thread default'
-     Each of the above 'set thread' commands has a 'set thread default'
-     counterpart (e.g., 'set thread default pause', 'set thread default
-     exception-port', etc.).  The 'thread default' variety of commands
-     sets the default thread properties for all threads; you can then
-     change the properties of individual threads with the non-default
-     commands.
-
-
-File: gdb.info,  Node: Darwin,  Next: FreeBSD,  Prev: Hurd Native,  Up: Native
-
-21.1.6 Darwin
--------------
-
-GDB provides the following commands specific to the Darwin target:
-
-'set debug darwin NUM'
-     When set to a non zero value, enables debugging messages specific
-     to the Darwin support.  Higher values produce more verbose output.
-
-'show debug darwin'
-     Show the current state of Darwin messages.
-
-'set debug mach-o NUM'
-     When set to a non zero value, enables debugging messages while GDB
-     is reading Darwin object files.  ("Mach-O" is the file format used
-     on Darwin for object and executable files.)  Higher values produce
-     more verbose output.  This is a command to diagnose problems
-     internal to GDB and should not be needed in normal usage.
-
-'show debug mach-o'
-     Show the current state of Mach-O file messages.
-
-'set mach-exceptions on'
-'set mach-exceptions off'
-     On Darwin, faults are first reported as a Mach exception and are
-     then mapped to a Posix signal.  Use this command to turn on
-     trapping of Mach exceptions in the inferior.  This might be
-     sometimes useful to better understand the cause of a fault.  The
-     default is off.
-
-'show mach-exceptions'
-     Show the current state of exceptions trapping.
-
-
-File: gdb.info,  Node: FreeBSD,  Prev: Darwin,  Up: Native
-
-21.1.7 FreeBSD
---------------
-
-When the ABI of a system call is changed in the FreeBSD kernel, this is
-implemented by leaving a compatibility system call using the old ABI at
-the existing number and allocating a new system call number for the
-version using the new ABI. As a convenience, when a system call is
-caught by name (*note catch syscall::), compatibility system calls are
-also caught.
-
-   For example, FreeBSD 12 introduced a new variant of the 'kevent'
-system call and catching the 'kevent' system call by name catches both
-variants:
-
-     (gdb) catch syscall kevent
-     Catchpoint 1 (syscalls 'freebsd11_kevent' [363] 'kevent' [560])
-     (gdb)
-
-
-File: gdb.info,  Node: Embedded OS,  Next: Embedded Processors,  Prev: Native,  Up: Configurations
-
-21.2 Embedded Operating Systems
-===============================
-
-This section describes configurations involving the debugging of
-embedded operating systems that are available for several different
-architectures.
-
-   GDB includes the ability to debug programs running on various
-real-time operating systems.
-
-
-File: gdb.info,  Node: Embedded Processors,  Next: Architectures,  Prev: Embedded OS,  Up: Configurations
-
-21.3 Embedded Processors
-========================
-
-This section goes into details specific to particular embedded
-configurations.
-
-   Whenever a specific embedded processor has a simulator, GDB allows to
-send an arbitrary command to the simulator.
-
-'sim COMMAND'
-     Send an arbitrary COMMAND string to the simulator.  Consult the
-     documentation for the specific simulator in use for information
-     about acceptable commands.
-
-* Menu:
-
-* ARC::                         Synopsys ARC
-* ARM::                         ARM
-* BPF::                         eBPF
-* M68K::                        Motorola M68K
-* MicroBlaze::			Xilinx MicroBlaze
-* MIPS Embedded::               MIPS Embedded
-* OpenRISC 1000::               OpenRISC 1000 (or1k)
-* PowerPC Embedded::            PowerPC Embedded
-* AVR::                         Atmel AVR
-* CRIS::                        CRIS
-* Super-H::                     Renesas Super-H
-
-
-File: gdb.info,  Node: ARC,  Next: ARM,  Up: Embedded Processors
-
-21.3.1 Synopsys ARC
--------------------
-
-GDB provides the following ARC-specific commands:
-
-'set debug arc'
-     Control the level of ARC specific debug messages.  Use 0 for no
-     messages (the default), 1 for debug messages, and 2 for even more
-     debug messages.
-
-'show debug arc'
-     Show the level of ARC specific debugging in operation.
-
-'maint print arc arc-instruction ADDRESS'
-     Print internal disassembler information about instruction at a
-     given address.
-
-
-File: gdb.info,  Node: ARM,  Next: BPF,  Prev: ARC,  Up: Embedded Processors
-
-21.3.2 ARM
-----------
-
-GDB provides the following ARM-specific commands:
-
-'set arm disassembler'
-     This commands selects from a list of disassembly styles.  The
-     '"std"' style is the standard style.
-
-'show arm disassembler'
-     Show the current disassembly style.
-
-'set arm apcs32'
-     This command toggles ARM operation mode between 32-bit and 26-bit.
-
-'show arm apcs32'
-     Display the current usage of the ARM 32-bit mode.
-
-'set arm fpu FPUTYPE'
-     This command sets the ARM floating-point unit (FPU) type.  The
-     argument FPUTYPE can be one of these:
-
-     'auto'
-          Determine the FPU type by querying the OS ABI.
-     'softfpa'
-          Software FPU, with mixed-endian doubles on little-endian ARM
-          processors.
-     'fpa'
-          GCC-compiled FPA co-processor.
-     'softvfp'
-          Software FPU with pure-endian doubles.
-     'vfp'
-          VFP co-processor.
-
-'show arm fpu'
-     Show the current type of the FPU.
-
-'set arm abi'
-     This command forces GDB to use the specified ABI.
-
-'show arm abi'
-     Show the currently used ABI.
-
-'set arm fallback-mode (arm|thumb|auto)'
-     GDB uses the symbol table, when available, to determine whether
-     instructions are ARM or Thumb.  This command controls GDB's default
-     behavior when the symbol table is not available.  The default is
-     'auto', which causes GDB to use the current execution mode (from
-     the 'T' bit in the 'CPSR' register).
-
-'show arm fallback-mode'
-     Show the current fallback instruction mode.
-
-'set arm force-mode (arm|thumb|auto)'
-     This command overrides use of the symbol table to determine whether
-     instructions are ARM or Thumb.  The default is 'auto', which causes
-     GDB to use the symbol table and then the setting of 'set arm
-     fallback-mode'.
-
-'show arm force-mode'
-     Show the current forced instruction mode.
-
-'set debug arm'
-     Toggle whether to display ARM-specific debugging messages from the
-     ARM target support subsystem.
-
-'show debug arm'
-     Show whether ARM-specific debugging messages are enabled.
-
-'target sim [SIMARGS] ...'
-     The GDB ARM simulator accepts the following optional arguments.
-
-     '--swi-support=TYPE'
-          Tell the simulator which SWI interfaces to support.  The
-          argument TYPE may be a comma separated list of the following
-          values.  The default value is 'all'.
-
-          'none'
-          'demon'
-          'angel'
-          'redboot'
-          'all'
-
-
-File: gdb.info,  Node: BPF,  Next: M68K,  Prev: ARM,  Up: Embedded Processors
-
-21.3.3 BPF
-----------
-
-'target sim [SIMARGS] ...'
-     The GDB BPF simulator accepts the following optional arguments.
-
-     '--skb-data-offset=OFFSET'
-          Tell the simulator the offset, measured in bytes, of the
-          'skb_data' field in the kernel 'struct sk_buff' structure.
-          This offset is used by some BPF specific-purpose load/store
-          instructions.  Defaults to 0.
-
-
-File: gdb.info,  Node: M68K,  Next: MicroBlaze,  Prev: BPF,  Up: Embedded Processors
-
-21.3.4 M68k
------------
-
-The Motorola m68k configuration includes ColdFire support.
-
-
-File: gdb.info,  Node: MicroBlaze,  Next: MIPS Embedded,  Prev: M68K,  Up: Embedded Processors
-
-21.3.5 MicroBlaze
------------------
-
-The MicroBlaze is a soft-core processor supported on various Xilinx
-FPGAs, such as Spartan or Virtex series.  Boards with these processors
-usually have JTAG ports which connect to a host system running the
-Xilinx Embedded Development Kit (EDK) or Software Development Kit (SDK).
-This host system is used to download the configuration bitstream to the
-target FPGA. The Xilinx Microprocessor Debugger (XMD) program
-communicates with the target board using the JTAG interface and presents
-a 'gdbserver' interface to the board.  By default 'xmd' uses port
-'1234'.  (While it is possible to change this default port, it requires
-the use of undocumented 'xmd' commands.  Contact Xilinx support if you
-need to do this.)
-
-   Use these GDB commands to connect to the MicroBlaze target processor.
-
-'target remote :1234'
-     Use this command to connect to the target if you are running GDB on
-     the same system as 'xmd'.
-
-'target remote XMD-HOST:1234'
-     Use this command to connect to the target if it is connected to
-     'xmd' running on a different system named XMD-HOST.
-
-'load'
-     Use this command to download a program to the MicroBlaze target.
-
-'set debug microblaze N'
-     Enable MicroBlaze-specific debugging messages if non-zero.
-
-'show debug microblaze N'
-     Show MicroBlaze-specific debugging level.
-
-
-File: gdb.info,  Node: MIPS Embedded,  Next: OpenRISC 1000,  Prev: MicroBlaze,  Up: Embedded Processors
-
-21.3.6 MIPS Embedded
---------------------
-
-GDB supports these special commands for MIPS targets:
-
-'set mipsfpu double'
-'set mipsfpu single'
-'set mipsfpu none'
-'set mipsfpu auto'
-'show mipsfpu'
-     If your target board does not support the MIPS floating point
-     coprocessor, you should use the command 'set mipsfpu none' (if you
-     need this, you may wish to put the command in your GDB init file).
-     This tells GDB how to find the return value of functions which
-     return floating point values.  It also allows GDB to avoid saving
-     the floating point registers when calling functions on the board.
-     If you are using a floating point coprocessor with only single
-     precision floating point support, as on the R4650 processor, use
-     the command 'set mipsfpu single'.  The default double precision
-     floating point coprocessor may be selected using 'set mipsfpu
-     double'.
-
-     In previous versions the only choices were double precision or no
-     floating point, so 'set mipsfpu on' will select double precision
-     and 'set mipsfpu off' will select no floating point.
-
-     As usual, you can inquire about the 'mipsfpu' variable with 'show
-     mipsfpu'.
-
-
-File: gdb.info,  Node: OpenRISC 1000,  Next: PowerPC Embedded,  Prev: MIPS Embedded,  Up: Embedded Processors
-
-21.3.7 OpenRISC 1000
---------------------
-
-The OpenRISC 1000 provides a free RISC instruction set architecture.  It
-is mainly provided as a soft-core which can run on Xilinx, Altera and
-other FPGA's.
-
-   GDB for OpenRISC supports the below commands when connecting to a
-target:
-
-'target sim'
-
-     Runs the builtin CPU simulator which can run very basic programs
-     but does not support most hardware functions like MMU. For more
-     complex use cases the user is advised to run an external target,
-     and connect using 'target remote'.
-
-     Example: 'target sim'
-
-'set debug or1k'
-     Toggle whether to display OpenRISC-specific debugging messages from
-     the OpenRISC target support subsystem.
-
-'show debug or1k'
-     Show whether OpenRISC-specific debugging messages are enabled.
-
-
-File: gdb.info,  Node: PowerPC Embedded,  Next: AVR,  Prev: OpenRISC 1000,  Up: Embedded Processors
-
-21.3.8 PowerPC Embedded
------------------------
-
-GDB supports using the DVC (Data Value Compare) register to implement in
-hardware simple hardware watchpoint conditions of the form:
-
-     (gdb) watch ADDRESS|VARIABLE \
-       if  ADDRESS|VARIABLE == CONSTANT EXPRESSION
-
-   The DVC register will be automatically used when GDB detects such
-pattern in a condition expression, and the created watchpoint uses one
-debug register (either the 'exact-watchpoints' option is on and the
-variable is scalar, or the variable has a length of one byte).  This
-feature is available in native GDB running on a Linux kernel version
-2.6.34 or newer.
-
-   When running on PowerPC embedded processors, GDB automatically uses
-ranged hardware watchpoints, unless the 'exact-watchpoints' option is
-on, in which case watchpoints using only one debug register are created
-when watching variables of scalar types.
-
-   You can create an artificial array to watch an arbitrary memory
-region using one of the following commands (*note Expressions::):
-
-     (gdb) watch *((char *) ADDRESS)@LENGTH
-     (gdb) watch {char[LENGTH]} ADDRESS
-
-   PowerPC embedded processors support masked watchpoints.  See the
-discussion about the 'mask' argument in *note Set Watchpoints::.
-
-   PowerPC embedded processors support hardware accelerated "ranged
-breakpoints".  A ranged breakpoint stops execution of the inferior
-whenever it executes an instruction at any address within the range it
-specifies.  To set a ranged breakpoint in GDB, use the 'break-range'
-command.
-
-   GDB provides the following PowerPC-specific commands:
-
-'break-range START-LOCATION, END-LOCATION'
-     Set a breakpoint for an address range given by START-LOCATION and
-     END-LOCATION, which can specify a function name, a line number, an
-     offset of lines from the current line or from the start location,
-     or an address of an instruction (see *note Specify Location::, for
-     a list of all the possible ways to specify a LOCATION.)  The
-     breakpoint will stop execution of the inferior whenever it executes
-     an instruction at any address within the specified range,
-     (including START-LOCATION and END-LOCATION.)
-
-'set powerpc soft-float'
-'show powerpc soft-float'
-     Force GDB to use (or not use) a software floating point calling
-     convention.  By default, GDB selects the calling convention based
-     on the selected architecture and the provided executable file.
-
-'set powerpc vector-abi'
-'show powerpc vector-abi'
-     Force GDB to use the specified calling convention for vector
-     arguments and return values.  The valid options are 'auto';
-     'generic', to avoid vector registers even if they are present;
-     'altivec', to use AltiVec registers; and 'spe' to use SPE
-     registers.  By default, GDB selects the calling convention based on
-     the selected architecture and the provided executable file.
-
-'set powerpc exact-watchpoints'
-'show powerpc exact-watchpoints'
-     Allow GDB to use only one debug register when watching a variable
-     of scalar type, thus assuming that the variable is accessed through
-     the address of its first byte.
 

@@ -1,6 +1,6 @@
-This is gdb.info, produced by makeinfo version 6.7 from gdb.texinfo.
+This is gdb.info, produced by makeinfo version 6.8 from gdb.texinfo.
 
-Copyright (C) 1988-2022 Free Software Foundation, Inc.
+Copyright (C) 1988-2023 Free Software Foundation, Inc.
 
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -21,9 +21,9 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Tenth Edition, of 'Debugging with GDB: the GNU
-Source-Level Debugger' for GDB (GDB) Version 12.1.
+Source-Level Debugger' for GDB (GDB) Version 13.1.
 
-   Copyright (C) 1988-2022 Free Software Foundation, Inc.
+   Copyright (C) 1988-2023 Free Software Foundation, Inc.
 
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -35,6 +35,1617 @@ with the Back-Cover Texts as in (a) below.
    (a) The FSF's Back-Cover Text is: "You are free to copy and modify
 this GNU Manual.  Buying copies from GNU Press supports the FSF in
 developing GNU and promoting software freedom."
+
+
+File: gdb.info,  Node: GDB/MI Async Records,  Next: GDB/MI Breakpoint Information,  Prev: GDB/MI Stream Records,  Up: GDB/MI Output Records
+
+27.5.3 GDB/MI Async Records
+---------------------------
+
+"Async" records are used to notify the GDB/MI client of additional
+changes that have occurred.  Those changes can either be a consequence
+of GDB/MI commands (e.g., a breakpoint modified) or a result of target
+activity (e.g., target stopped).
+
+   The following is the list of possible async records:
+
+'*running,thread-id="THREAD"'
+     The target is now running.  The THREAD field can be the global
+     thread ID of the thread that is now running, and it can be 'all' if
+     all threads are running.  The frontend should assume that no
+     interaction with a running thread is possible after this
+     notification is produced.  The frontend should not assume that this
+     notification is output only once for any command.  GDB may emit
+     this notification several times, either for different threads,
+     because it cannot resume all threads together, or even for a single
+     thread, if the thread must be stepped though some code before
+     letting it run freely.
+
+'*stopped,reason="REASON",thread-id="ID",stopped-threads="STOPPED",core="CORE"'
+     The target has stopped.  The REASON field can have one of the
+     following values:
+
+     'breakpoint-hit'
+          A breakpoint was reached.
+     'watchpoint-trigger'
+          A watchpoint was triggered.
+     'read-watchpoint-trigger'
+          A read watchpoint was triggered.
+     'access-watchpoint-trigger'
+          An access watchpoint was triggered.
+     'function-finished'
+          An -exec-finish or similar CLI command was accomplished.
+     'location-reached'
+          An -exec-until or similar CLI command was accomplished.
+     'watchpoint-scope'
+          A watchpoint has gone out of scope.
+     'end-stepping-range'
+          An -exec-next, -exec-next-instruction, -exec-step,
+          -exec-step-instruction or similar CLI command was
+          accomplished.
+     'exited-signalled'
+          The inferior exited because of a signal.
+     'exited'
+          The inferior exited.
+     'exited-normally'
+          The inferior exited normally.
+     'signal-received'
+          A signal was received by the inferior.
+     'solib-event'
+          The inferior has stopped due to a library being loaded or
+          unloaded.  This can happen when 'stop-on-solib-events' (*note
+          Files::) is set or when a 'catch load' or 'catch unload'
+          catchpoint is in use (*note Set Catchpoints::).
+     'fork'
+          The inferior has forked.  This is reported when 'catch fork'
+          (*note Set Catchpoints::) has been used.
+     'vfork'
+          The inferior has vforked.  This is reported in when 'catch
+          vfork' (*note Set Catchpoints::) has been used.
+     'syscall-entry'
+          The inferior entered a system call.  This is reported when
+          'catch syscall' (*note Set Catchpoints::) has been used.
+     'syscall-return'
+          The inferior returned from a system call.  This is reported
+          when 'catch syscall' (*note Set Catchpoints::) has been used.
+     'exec'
+          The inferior called 'exec'.  This is reported when 'catch
+          exec' (*note Set Catchpoints::) has been used.
+
+     The ID field identifies the global thread ID of the thread that
+     directly caused the stop - for example by hitting a breakpoint.
+     Depending on whether all-stop mode is in effect (*note All-Stop
+     Mode::), GDB may either stop all threads, or only the thread that
+     directly triggered the stop.  If all threads are stopped, the
+     STOPPED field will have the value of '"all"'.  Otherwise, the value
+     of the STOPPED field will be a list of thread identifiers.
+     Presently, this list will always include a single thread, but
+     frontend should be prepared to see several threads in the list.
+     The CORE field reports the processor core on which the stop event
+     has happened.  This field may be absent if such information is not
+     available.
+
+'=thread-group-added,id="ID"'
+'=thread-group-removed,id="ID"'
+     A thread group was either added or removed.  The ID field contains
+     the GDB identifier of the thread group.  When a thread group is
+     added, it generally might not be associated with a running process.
+     When a thread group is removed, its id becomes invalid and cannot
+     be used in any way.
+
+'=thread-group-started,id="ID",pid="PID"'
+     A thread group became associated with a running program, either
+     because the program was just started or the thread group was
+     attached to a program.  The ID field contains the GDB identifier of
+     the thread group.  The PID field contains process identifier,
+     specific to the operating system.
+
+'=thread-group-exited,id="ID"[,exit-code="CODE"]'
+     A thread group is no longer associated with a running program,
+     either because the program has exited, or because it was detached
+     from.  The ID field contains the GDB identifier of the thread
+     group.  The CODE field is the exit code of the inferior; it exists
+     only when the inferior exited with some code.
+
+'=thread-created,id="ID",group-id="GID"'
+'=thread-exited,id="ID",group-id="GID"'
+     A thread either was created, or has exited.  The ID field contains
+     the global GDB identifier of the thread.  The GID field identifies
+     the thread group this thread belongs to.
+
+'=thread-selected,id="ID"[,frame="FRAME"]'
+     Informs that the selected thread or frame were changed.  This
+     notification is not emitted as result of the '-thread-select' or
+     '-stack-select-frame' commands, but is emitted whenever an MI
+     command that is not documented to change the selected thread and
+     frame actually changes them.  In particular, invoking, directly or
+     indirectly (via user-defined command), the CLI 'thread' or 'frame'
+     commands, will generate this notification.  Changing the thread or
+     frame from another user interface (see *note Interpreters::) will
+     also generate this notification.
+
+     The FRAME field is only present if the newly selected thread is
+     stopped.  See *note GDB/MI Frame Information:: for the format of
+     its value.
+
+     We suggest that in response to this notification, front ends
+     highlight the selected thread and cause subsequent commands to
+     apply to that thread.
+
+'=library-loaded,...'
+     Reports that a new library file was loaded by the program.  This
+     notification has 5 fields--ID, TARGET-NAME, HOST-NAME,
+     SYMBOLS-LOADED and RANGES.  The ID field is an opaque identifier of
+     the library.  For remote debugging case, TARGET-NAME and HOST-NAME
+     fields give the name of the library file on the target, and on the
+     host respectively.  For native debugging, both those fields have
+     the same value.  The SYMBOLS-LOADED field is emitted only for
+     backward compatibility and should not be relied on to convey any
+     useful information.  The THREAD-GROUP field, if present, specifies
+     the id of the thread group in whose context the library was loaded.
+     If the field is absent, it means the library was loaded in the
+     context of all present thread groups.  The RANGES field specifies
+     the ranges of addresses belonging to this library.
+
+'=library-unloaded,...'
+     Reports that a library was unloaded by the program.  This
+     notification has 3 fields--ID, TARGET-NAME and HOST-NAME with the
+     same meaning as for the '=library-loaded' notification.  The
+     THREAD-GROUP field, if present, specifies the id of the thread
+     group in whose context the library was unloaded.  If the field is
+     absent, it means the library was unloaded in the context of all
+     present thread groups.
+
+'=traceframe-changed,num=TFNUM,tracepoint=TPNUM'
+'=traceframe-changed,end'
+     Reports that the trace frame was changed and its new number is
+     TFNUM.  The number of the tracepoint associated with this trace
+     frame is TPNUM.
+
+'=tsv-created,name=NAME,initial=INITIAL'
+     Reports that the new trace state variable NAME is created with
+     initial value INITIAL.
+
+'=tsv-deleted,name=NAME'
+'=tsv-deleted'
+     Reports that the trace state variable NAME is deleted or all trace
+     state variables are deleted.
+
+'=tsv-modified,name=NAME,initial=INITIAL[,current=CURRENT]'
+     Reports that the trace state variable NAME is modified with the
+     initial value INITIAL.  The current value CURRENT of trace state
+     variable is optional and is reported if the current value of trace
+     state variable is known.
+
+'=breakpoint-created,bkpt={...}'
+'=breakpoint-modified,bkpt={...}'
+'=breakpoint-deleted,id=NUMBER'
+     Reports that a breakpoint was created, modified, or deleted,
+     respectively.  Only user-visible breakpoints are reported to the MI
+     user.
+
+     The BKPT argument is of the same form as returned by the various
+     breakpoint commands; *Note GDB/MI Breakpoint Commands::.  The
+     NUMBER is the ordinal number of the breakpoint.
+
+     Note that if a breakpoint is emitted in the result record of a
+     command, then it will not also be emitted in an async record.
+
+'=record-started,thread-group="ID",method="METHOD"[,format="FORMAT"]'
+'=record-stopped,thread-group="ID"'
+     Execution log recording was either started or stopped on an
+     inferior.  The ID is the GDB identifier of the thread group
+     corresponding to the affected inferior.
+
+     The METHOD field indicates the method used to record execution.  If
+     the method in use supports multiple recording formats, FORMAT will
+     be present and contain the currently used format.  *Note Process
+     Record and Replay::, for existing method and format values.
+
+'=cmd-param-changed,param=PARAM,value=VALUE'
+     Reports that a parameter of the command 'set PARAM' is changed to
+     VALUE.  In the multi-word 'set' command, the PARAM is the whole
+     parameter list to 'set' command.  For example, In command 'set
+     check type on', PARAM is 'check type' and VALUE is 'on'.
+
+'=memory-changed,thread-group=ID,addr=ADDR,len=LEN[,type="code"]'
+     Reports that bytes from ADDR to DATA + LEN were written in an
+     inferior.  The ID is the identifier of the thread group
+     corresponding to the affected inferior.  The optional 'type="code"'
+     part is reported if the memory written to holds executable code.
+
+
+File: gdb.info,  Node: GDB/MI Breakpoint Information,  Next: GDB/MI Frame Information,  Prev: GDB/MI Async Records,  Up: GDB/MI Output Records
+
+27.5.4 GDB/MI Breakpoint Information
+------------------------------------
+
+When GDB reports information about a breakpoint, a tracepoint, a
+watchpoint, or a catchpoint, it uses a tuple with the following fields:
+
+'number'
+     The breakpoint number.
+
+'type'
+     The type of the breakpoint.  For ordinary breakpoints this will be
+     'breakpoint', but many values are possible.
+
+'catch-type'
+     If the type of the breakpoint is 'catchpoint', then this indicates
+     the exact type of catchpoint.
+
+'disp'
+     This is the breakpoint disposition--either 'del', meaning that the
+     breakpoint will be deleted at the next stop, or 'keep', meaning
+     that the breakpoint will not be deleted.
+
+'enabled'
+     This indicates whether the breakpoint is enabled, in which case the
+     value is 'y', or disabled, in which case the value is 'n'.  Note
+     that this is not the same as the field 'enable'.
+
+'addr'
+     The address of the breakpoint.  This may be a hexidecimal number,
+     giving the address; or the string '<PENDING>', for a pending
+     breakpoint; or the string '<MULTIPLE>', for a breakpoint with
+     multiple locations.  This field will not be present if no address
+     can be determined.  For example, a watchpoint does not have an
+     address.
+
+'addr_flags'
+     Optional field containing any flags related to the address.  These
+     flags are architecture-dependent; see *note Architectures:: for
+     their meaning for a particular CPU.
+
+'func'
+     If known, the function in which the breakpoint appears.  If not
+     known, this field is not present.
+
+'filename'
+     The name of the source file which contains this function, if known.
+     If not known, this field is not present.
+
+'fullname'
+     The full file name of the source file which contains this function,
+     if known.  If not known, this field is not present.
+
+'line'
+     The line number at which this breakpoint appears, if known.  If not
+     known, this field is not present.
+
+'at'
+     If the source file is not known, this field may be provided.  If
+     provided, this holds the address of the breakpoint, possibly
+     followed by a symbol name.
+
+'pending'
+     If this breakpoint is pending, this field is present and holds the
+     text used to set the breakpoint, as entered by the user.
+
+'evaluated-by'
+     Where this breakpoint's condition is evaluated, either 'host' or
+     'target'.
+
+'thread'
+     If this is a thread-specific breakpoint, then this identifies the
+     thread in which the breakpoint can trigger.
+
+'task'
+     If this breakpoint is restricted to a particular Ada task, then
+     this field will hold the task identifier.
+
+'cond'
+     If the breakpoint is conditional, this is the condition expression.
+
+'ignore'
+     The ignore count of the breakpoint.
+
+'enable'
+     The enable count of the breakpoint.
+
+'traceframe-usage'
+     FIXME.
+
+'static-tracepoint-marker-string-id'
+     For a static tracepoint, the name of the static tracepoint marker.
+
+'mask'
+     For a masked watchpoint, this is the mask.
+
+'pass'
+     A tracepoint's pass count.
+
+'original-location'
+     The location of the breakpoint as originally specified by the user.
+     This field is optional.
+
+'times'
+     The number of times the breakpoint has been hit.
+
+'installed'
+     This field is only given for tracepoints.  This is either 'y',
+     meaning that the tracepoint is installed, or 'n', meaning that it
+     is not.
+
+'what'
+     Some extra data, the exact contents of which are type-dependent.
+
+'locations'
+     This field is present if the breakpoint has multiple locations.  It
+     is also exceptionally present if the breakpoint is enabled and has
+     a single, disabled location.
+
+     The value is a list of locations.  The format of a location is
+     described below.
+
+   A location in a multi-location breakpoint is represented as a tuple
+with the following fields:
+
+'number'
+     The location number as a dotted pair, like '1.2'.  The first digit
+     is the number of the parent breakpoint.  The second digit is the
+     number of the location within that breakpoint.
+
+'enabled'
+     There are three possible values, with the following meanings:
+     'y'
+          The location is enabled.
+     'n'
+          The location is disabled by the user.
+     'N'
+          The location is disabled because the breakpoint condition is
+          invalid at this location.
+
+'addr'
+     The address of this location as an hexidecimal number.
+
+'addr_flags'
+     Optional field containing any flags related to the address.  These
+     flags are architecture-dependent; see *note Architectures:: for
+     their meaning for a particular CPU.
+
+'func'
+     If known, the function in which the location appears.  If not
+     known, this field is not present.
+
+'file'
+     The name of the source file which contains this location, if known.
+     If not known, this field is not present.
+
+'fullname'
+     The full file name of the source file which contains this location,
+     if known.  If not known, this field is not present.
+
+'line'
+     The line number at which this location appears, if known.  If not
+     known, this field is not present.
+
+'thread-groups'
+     The thread groups this location is in.
+
+   For example, here is what the output of '-break-insert' (*note GDB/MI
+Breakpoint Commands::) might be:
+
+     -> -break-insert main
+     <- ^done,bkpt={number="1",type="breakpoint",disp="keep",
+         enabled="y",addr="0x08048564",func="main",file="myprog.c",
+         fullname="/home/nickrob/myprog.c",line="68",thread-groups=["i1"],
+         times="0"}
+     <- (gdb)
+
+
+File: gdb.info,  Node: GDB/MI Frame Information,  Next: GDB/MI Thread Information,  Prev: GDB/MI Breakpoint Information,  Up: GDB/MI Output Records
+
+27.5.5 GDB/MI Frame Information
+-------------------------------
+
+Response from many MI commands includes an information about stack
+frame.  This information is a tuple that may have the following fields:
+
+'level'
+     The level of the stack frame.  The innermost frame has the level of
+     zero.  This field is always present.
+
+'func'
+     The name of the function corresponding to the frame.  This field
+     may be absent if GDB is unable to determine the function name.
+
+'addr'
+     The code address for the frame.  This field is always present.
+
+'addr_flags'
+     Optional field containing any flags related to the address.  These
+     flags are architecture-dependent; see *note Architectures:: for
+     their meaning for a particular CPU.
+
+'file'
+     The name of the source files that correspond to the frame's code
+     address.  This field may be absent.
+
+'line'
+     The source line corresponding to the frames' code address.  This
+     field may be absent.
+
+'from'
+     The name of the binary file (either executable or shared library)
+     the corresponds to the frame's code address.  This field may be
+     absent.
+
+
+File: gdb.info,  Node: GDB/MI Thread Information,  Next: GDB/MI Ada Exception Information,  Prev: GDB/MI Frame Information,  Up: GDB/MI Output Records
+
+27.5.6 GDB/MI Thread Information
+--------------------------------
+
+Whenever GDB has to report an information about a thread, it uses a
+tuple with the following fields.  The fields are always present unless
+stated otherwise.
+
+'id'
+     The global numeric id assigned to the thread by GDB.
+
+'target-id'
+     The target-specific string identifying the thread.
+
+'details'
+     Additional information about the thread provided by the target.  It
+     is supposed to be human-readable and not interpreted by the
+     frontend.  This field is optional.
+
+'name'
+     The name of the thread.  If the user specified a name using the
+     'thread name' command, then this name is given.  Otherwise, if GDB
+     can extract the thread name from the target, then that name is
+     given.  If GDB cannot find the thread name, then this field is
+     omitted.
+
+'state'
+     The execution state of the thread, either 'stopped' or 'running',
+     depending on whether the thread is presently running.
+
+'frame'
+     The stack frame currently executing in the thread.  This field is
+     only present if the thread is stopped.  Its format is documented in
+     *note GDB/MI Frame Information::.
+
+'core'
+     The value of this field is an integer number of the processor core
+     the thread was last seen on.  This field is optional.
+
+
+File: gdb.info,  Node: GDB/MI Ada Exception Information,  Prev: GDB/MI Thread Information,  Up: GDB/MI Output Records
+
+27.5.7 GDB/MI Ada Exception Information
+---------------------------------------
+
+Whenever a '*stopped' record is emitted because the program stopped
+after hitting an exception catchpoint (*note Set Catchpoints::), GDB
+provides the name of the exception that was raised via the
+'exception-name' field.  Also, for exceptions that were raised with an
+exception message, GDB provides that message via the 'exception-message'
+field.
+
+
+File: gdb.info,  Node: GDB/MI Simple Examples,  Next: GDB/MI Command Description Format,  Prev: GDB/MI Output Records,  Up: GDB/MI
+
+27.6 Simple Examples of GDB/MI Interaction
+==========================================
+
+This subsection presents several simple examples of interaction using
+the GDB/MI interface.  In these examples, '->' means that the following
+line is passed to GDB/MI as input, while '<-' means the output received
+from GDB/MI.
+
+   Note the line breaks shown in the examples are here only for
+readability, they don't appear in the real output.
+
+Setting a Breakpoint
+--------------------
+
+Setting a breakpoint generates synchronous output which contains
+detailed information of the breakpoint.
+
+     -> -break-insert main
+     <- ^done,bkpt={number="1",type="breakpoint",disp="keep",
+         enabled="y",addr="0x08048564",func="main",file="myprog.c",
+         fullname="/home/nickrob/myprog.c",line="68",thread-groups=["i1"],
+         times="0"}
+     <- (gdb)
+
+Program Execution
+-----------------
+
+Program execution generates asynchronous records and MI gives the reason
+that execution stopped.
+
+     -> -exec-run
+     <- ^running
+     <- (gdb)
+     <- *stopped,reason="breakpoint-hit",disp="keep",bkptno="1",thread-id="0",
+        frame={addr="0x08048564",func="main",
+        args=[{name="argc",value="1"},{name="argv",value="0xbfc4d4d4"}],
+        file="myprog.c",fullname="/home/nickrob/myprog.c",line="68",
+        arch="i386:x86_64"}
+     <- (gdb)
+     -> -exec-continue
+     <- ^running
+     <- (gdb)
+     <- *stopped,reason="exited-normally"
+     <- (gdb)
+
+Quitting GDB
+------------
+
+Quitting GDB just prints the result class '^exit'.
+
+     -> (gdb)
+     <- -gdb-exit
+     <- ^exit
+
+   Please note that '^exit' is printed immediately, but it might take
+some time for GDB to actually exit.  During that time, GDB performs
+necessary cleanups, including killing programs being debugged or
+disconnecting from debug hardware, so the frontend should wait till GDB
+exits and should only forcibly kill GDB if it fails to exit in
+reasonable time.
+
+A Bad Command
+-------------
+
+Here's what happens if you pass a non-existent command:
+
+     -> -rubbish
+     <- ^error,msg="Undefined MI command: rubbish"
+     <- (gdb)
+
+
+File: gdb.info,  Node: GDB/MI Command Description Format,  Next: GDB/MI Breakpoint Commands,  Prev: GDB/MI Simple Examples,  Up: GDB/MI
+
+27.7 GDB/MI Command Description Format
+======================================
+
+The remaining sections describe blocks of commands.  Each block of
+commands is laid out in a fashion similar to this section.
+
+Motivation
+----------
+
+The motivation for this collection of commands.
+
+Introduction
+------------
+
+A brief introduction to this collection of commands as a whole.
+
+Commands
+--------
+
+For each command in the block, the following is described:
+
+Synopsis
+........
+
+      -command ARGS...
+
+Result
+......
+
+GDB Command
+...........
+
+The corresponding GDB CLI command(s), if any.
+
+Example
+.......
+
+Example(s) formatted for readability.  Some of the described commands
+have not been implemented yet and these are labeled N.A. (not
+available).
+
+
+File: gdb.info,  Node: GDB/MI Breakpoint Commands,  Next: GDB/MI Catchpoint Commands,  Prev: GDB/MI Command Description Format,  Up: GDB/MI
+
+27.8 GDB/MI Breakpoint Commands
+===============================
+
+This section documents GDB/MI commands for manipulating breakpoints.
+
+The '-break-after' Command
+--------------------------
+
+Synopsis
+........
+
+      -break-after NUMBER COUNT
+
+   The breakpoint number NUMBER is not in effect until it has been hit
+COUNT times.  To see how this is reflected in the output of the
+'-break-list' command, see the description of the '-break-list' command
+below.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'ignore'.
+
+Example
+.......
+
+     (gdb)
+     -break-insert main
+     ^done,bkpt={number="1",type="breakpoint",disp="keep",
+     enabled="y",addr="0x000100d0",func="main",file="hello.c",
+     fullname="/home/foo/hello.c",line="5",thread-groups=["i1"],
+     times="0"}
+     (gdb)
+     -break-after 1 3
+     ~
+     ^done
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="1",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[bkpt={number="1",type="breakpoint",disp="keep",enabled="y",
+     addr="0x000100d0",func="main",file="hello.c",fullname="/home/foo/hello.c",
+     line="5",thread-groups=["i1"],times="0",ignore="3"}]}
+     (gdb)
+
+The '-break-commands' Command
+-----------------------------
+
+Synopsis
+........
+
+      -break-commands NUMBER [ COMMAND1 ... COMMANDN ]
+
+   Specifies the CLI commands that should be executed when breakpoint
+NUMBER is hit.  The parameters COMMAND1 to COMMANDN are the commands.
+If no command is specified, any previously-set commands are cleared.
+*Note Break Commands::.  Typical use of this functionality is tracing a
+program, that is, printing of values of some variables whenever
+breakpoint is hit and then continuing.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'commands'.
+
+Example
+.......
+
+     (gdb)
+     -break-insert main
+     ^done,bkpt={number="1",type="breakpoint",disp="keep",
+     enabled="y",addr="0x000100d0",func="main",file="hello.c",
+     fullname="/home/foo/hello.c",line="5",thread-groups=["i1"],
+     times="0"}
+     (gdb)
+     -break-commands 1 "print v" "continue"
+     ^done
+     (gdb)
+
+The '-break-condition' Command
+------------------------------
+
+Synopsis
+........
+
+      -break-condition [ --force ] NUMBER [ EXPR ]
+
+   Breakpoint NUMBER will stop the program only if the condition in EXPR
+is true.  The condition becomes part of the '-break-list' output (see
+the description of the '-break-list' command below).  If the '--force'
+flag is passed, the condition is forcibly defined even when it is
+invalid for all locations of breakpoint NUMBER.  If the EXPR argument is
+omitted, breakpoint NUMBER becomes unconditional.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'condition'.
+
+Example
+.......
+
+     (gdb)
+     -break-condition 1 1
+     ^done
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="1",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[bkpt={number="1",type="breakpoint",disp="keep",enabled="y",
+     addr="0x000100d0",func="main",file="hello.c",fullname="/home/foo/hello.c",
+     line="5",cond="1",thread-groups=["i1"],times="0",ignore="3"}]}
+     (gdb)
+
+The '-break-delete' Command
+---------------------------
+
+Synopsis
+........
+
+      -break-delete ( BREAKPOINT )+
+
+   Delete the breakpoint(s) whose number(s) are specified in the
+argument list.  This is obviously reflected in the breakpoint list.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'delete'.
+
+Example
+.......
+
+     (gdb)
+     -break-delete 1
+     ^done
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="0",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[]}
+     (gdb)
+
+The '-break-disable' Command
+----------------------------
+
+Synopsis
+........
+
+      -break-disable ( BREAKPOINT )+
+
+   Disable the named BREAKPOINT(s).  The field 'enabled' in the break
+list is now set to 'n' for the named BREAKPOINT(s).
+
+GDB Command
+...........
+
+The corresponding GDB command is 'disable'.
+
+Example
+.......
+
+     (gdb)
+     -break-disable 2
+     ^done
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="1",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[bkpt={number="2",type="breakpoint",disp="keep",enabled="n",
+     addr="0x000100d0",func="main",file="hello.c",fullname="/home/foo/hello.c",
+     line="5",thread-groups=["i1"],times="0"}]}
+     (gdb)
+
+The '-break-enable' Command
+---------------------------
+
+Synopsis
+........
+
+      -break-enable ( BREAKPOINT )+
+
+   Enable (previously disabled) BREAKPOINT(s).
+
+GDB Command
+...........
+
+The corresponding GDB command is 'enable'.
+
+Example
+.......
+
+     (gdb)
+     -break-enable 2
+     ^done
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="1",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[bkpt={number="2",type="breakpoint",disp="keep",enabled="y",
+     addr="0x000100d0",func="main",file="hello.c",fullname="/home/foo/hello.c",
+     line="5",thread-groups=["i1"],times="0"}]}
+     (gdb)
+
+The '-break-info' Command
+-------------------------
+
+Synopsis
+........
+
+      -break-info BREAKPOINT
+
+   Get information about a single breakpoint.
+
+   The result is a table of breakpoints.  *Note GDB/MI Breakpoint
+Information::, for details on the format of each breakpoint in the
+table.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'info break BREAKPOINT'.
+
+Example
+.......
+
+N.A.
+
+The '-break-insert' Command
+---------------------------
+
+Synopsis
+........
+
+      -break-insert [ -t ] [ -h ] [ -f ] [ -d ] [ -a ] [ --qualified ]
+         [ -c CONDITION ] [ --force-condition ] [ -i IGNORE-COUNT ]
+         [ -p THREAD-ID ] [ LOCSPEC ]
+
+If specified, LOCSPEC, can be one of:
+
+LINESPEC LOCATION
+     A linespec location.  *Note Linespec Locations::.
+
+EXPLICIT LOCATION
+     An explicit location.  GDB/MI explicit locations are analogous to
+     the CLI's explicit locations using the option names listed below.
+     *Note Explicit Locations::.
+
+     '--source FILENAME'
+          The source file name of the location.  This option requires
+          the use of either '--function' or '--line'.
+
+     '--function FUNCTION'
+          The name of a function or method.
+
+     '--label LABEL'
+          The name of a label.
+
+     '--line LINEOFFSET'
+          An absolute or relative line offset from the start of the
+          location.
+
+ADDRESS LOCATION
+     An address location, *ADDRESS.  *Note Address Locations::.
+
+The possible optional parameters of this command are:
+
+'-t'
+     Insert a temporary breakpoint.
+'-h'
+     Insert a hardware breakpoint.
+'-f'
+     If LOCSPEC cannot be resolved (for example if it refers to unknown
+     files or functions), create a pending breakpoint.  Without this
+     flag, GDB will report an error, and won't create a breakpoint, if
+     LOCSPEC cannot be parsed.
+'-d'
+     Create a disabled breakpoint.
+'-a'
+     Create a tracepoint.  *Note Tracepoints::.  When this parameter is
+     used together with '-h', a fast tracepoint is created.
+'-c CONDITION'
+     Make the breakpoint conditional on CONDITION.
+'--force-condition'
+     Forcibly define the breakpoint even if the condition is invalid at
+     all of the breakpoint locations.
+'-i IGNORE-COUNT'
+     Initialize the IGNORE-COUNT.
+'-p THREAD-ID'
+     Restrict the breakpoint to the thread with the specified global
+     THREAD-ID.
+'--qualified'
+     This option makes GDB interpret a function name specified as a
+     complete fully-qualified name.
+
+Result
+......
+
+*Note GDB/MI Breakpoint Information::, for details on the format of the
+resulting breakpoint.
+
+   Note: this format is open to change.
+
+GDB Command
+...........
+
+The corresponding GDB commands are 'break', 'tbreak', 'hbreak', and
+'thbreak'.
+
+Example
+.......
+
+     (gdb)
+     -break-insert main
+     ^done,bkpt={number="1",addr="0x0001072c",file="recursive2.c",
+     fullname="/home/foo/recursive2.c,line="4",thread-groups=["i1"],
+     times="0"}
+     (gdb)
+     -break-insert -t foo
+     ^done,bkpt={number="2",addr="0x00010774",file="recursive2.c",
+     fullname="/home/foo/recursive2.c,line="11",thread-groups=["i1"],
+     times="0"}
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="2",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[bkpt={number="1",type="breakpoint",disp="keep",enabled="y",
+     addr="0x0001072c", func="main",file="recursive2.c",
+     fullname="/home/foo/recursive2.c,"line="4",thread-groups=["i1"],
+     times="0"},
+     bkpt={number="2",type="breakpoint",disp="del",enabled="y",
+     addr="0x00010774",func="foo",file="recursive2.c",
+     fullname="/home/foo/recursive2.c",line="11",thread-groups=["i1"],
+     times="0"}]}
+     (gdb)
+
+The '-dprintf-insert' Command
+-----------------------------
+
+Synopsis
+........
+
+      -dprintf-insert [ -t ] [ -f ] [ -d ] [ --qualified ]
+         [ -c CONDITION ] [--force-condition] [ -i IGNORE-COUNT ]
+         [ -p THREAD-ID ] [ LOCSPEC ] [ FORMAT ]
+         [ ARGUMENT ]
+
+If supplied, LOCSPEC and '--qualified' may be specified the same way as
+for the '-break-insert' command.  *Note -break-insert::.
+
+   The possible optional parameters of this command are:
+
+'-t'
+     Insert a temporary breakpoint.
+'-f'
+     If LOCSPEC cannot be parsed (for example, if it refers to unknown
+     files or functions), create a pending breakpoint.  Without this
+     flag, GDB will report an error, and won't create a breakpoint, if
+     LOCSPEC cannot be parsed.
+'-d'
+     Create a disabled breakpoint.
+'-c CONDITION'
+     Make the breakpoint conditional on CONDITION.
+'--force-condition'
+     Forcibly define the breakpoint even if the condition is invalid at
+     all of the breakpoint locations.
+'-i IGNORE-COUNT'
+     Set the ignore count of the breakpoint (*note ignore count:
+     Conditions.) to IGNORE-COUNT.
+'-p THREAD-ID'
+     Restrict the breakpoint to the thread with the specified global
+     THREAD-ID.
+
+Result
+......
+
+*Note GDB/MI Breakpoint Information::, for details on the format of the
+resulting breakpoint.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'dprintf'.
+
+Example
+.......
+
+     (gdb)
+     4-dprintf-insert foo "At foo entry\n"
+     4^done,bkpt={number="1",type="dprintf",disp="keep",enabled="y",
+     addr="0x000000000040061b",func="foo",file="mi-dprintf.c",
+     fullname="mi-dprintf.c",line="25",thread-groups=["i1"],
+     times="0",script=["printf \"At foo entry\\n\"","continue"],
+     original-location="foo"}
+     (gdb)
+     5-dprintf-insert 26 "arg=%d, g=%d\n" arg g
+     5^done,bkpt={number="2",type="dprintf",disp="keep",enabled="y",
+     addr="0x000000000040062a",func="foo",file="mi-dprintf.c",
+     fullname="mi-dprintf.c",line="26",thread-groups=["i1"],
+     times="0",script=["printf \"arg=%d, g=%d\\n\", arg, g","continue"],
+     original-location="mi-dprintf.c:26"}
+     (gdb)
+
+The '-break-list' Command
+-------------------------
+
+Synopsis
+........
+
+      -break-list
+
+   Displays the list of inserted breakpoints, showing the following
+fields:
+
+'Number'
+     number of the breakpoint
+'Type'
+     type of the breakpoint: 'breakpoint' or 'watchpoint'
+'Disposition'
+     should the breakpoint be deleted or disabled when it is hit: 'keep'
+     or 'nokeep'
+'Enabled'
+     is the breakpoint enabled or no: 'y' or 'n'
+'Address'
+     memory location at which the breakpoint is set
+'What'
+     logical location of the breakpoint, expressed by function name,
+     file name, line number
+'Thread-groups'
+     list of thread groups to which this breakpoint applies
+'Times'
+     number of times the breakpoint has been hit
+
+   If there are no breakpoints or watchpoints, the 'BreakpointTable'
+'body' field is an empty list.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'info break'.
+
+Example
+.......
+
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="2",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[bkpt={number="1",type="breakpoint",disp="keep",enabled="y",
+     addr="0x000100d0",func="main",file="hello.c",line="5",thread-groups=["i1"],
+     times="0"},
+     bkpt={number="2",type="breakpoint",disp="keep",enabled="y",
+     addr="0x00010114",func="foo",file="hello.c",fullname="/home/foo/hello.c",
+     line="13",thread-groups=["i1"],times="0"}]}
+     (gdb)
+
+   Here's an example of the result when there are no breakpoints:
+
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="0",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[]}
+     (gdb)
+
+The '-break-passcount' Command
+------------------------------
+
+Synopsis
+........
+
+      -break-passcount TRACEPOINT-NUMBER PASSCOUNT
+
+   Set the passcount for tracepoint TRACEPOINT-NUMBER to PASSCOUNT.  If
+the breakpoint referred to by TRACEPOINT-NUMBER is not a tracepoint,
+error is emitted.  This corresponds to CLI command 'passcount'.
+
+The '-break-watch' Command
+--------------------------
+
+Synopsis
+........
+
+      -break-watch [ -a | -r ]
+
+   Create a watchpoint.  With the '-a' option it will create an "access"
+watchpoint, i.e., a watchpoint that triggers either on a read from or on
+a write to the memory location.  With the '-r' option, the watchpoint
+created is a "read" watchpoint, i.e., it will trigger only when the
+memory location is accessed for reading.  Without either of the options,
+the watchpoint created is a regular watchpoint, i.e., it will trigger
+when the memory location is accessed for writing.  *Note Setting
+Watchpoints: Set Watchpoints.
+
+   Note that '-break-list' will report a single list of watchpoints and
+breakpoints inserted.
+
+GDB Command
+...........
+
+The corresponding GDB commands are 'watch', 'awatch', and 'rwatch'.
+
+Example
+.......
+
+Setting a watchpoint on a variable in the 'main' function:
+
+     (gdb)
+     -break-watch x
+     ^done,wpt={number="2",exp="x"}
+     (gdb)
+     -exec-continue
+     ^running
+     (gdb)
+     *stopped,reason="watchpoint-trigger",wpt={number="2",exp="x"},
+     value={old="-268439212",new="55"},
+     frame={func="main",args=[],file="recursive2.c",
+     fullname="/home/foo/bar/recursive2.c",line="5",arch="i386:x86_64"}
+     (gdb)
+
+   Setting a watchpoint on a variable local to a function.  GDB will
+stop the program execution twice: first for the variable changing value,
+then for the watchpoint going out of scope.
+
+     (gdb)
+     -break-watch C
+     ^done,wpt={number="5",exp="C"}
+     (gdb)
+     -exec-continue
+     ^running
+     (gdb)
+     *stopped,reason="watchpoint-trigger",
+     wpt={number="5",exp="C"},value={old="-276895068",new="3"},
+     frame={func="callee4",args=[],
+     file="../../../devo/gdb/testsuite/gdb.mi/basics.c",
+     fullname="/home/foo/bar/devo/gdb/testsuite/gdb.mi/basics.c",line="13",
+     arch="i386:x86_64"}
+     (gdb)
+     -exec-continue
+     ^running
+     (gdb)
+     *stopped,reason="watchpoint-scope",wpnum="5",
+     frame={func="callee3",args=[{name="strarg",
+     value="0x11940 \"A string argument.\""}],
+     file="../../../devo/gdb/testsuite/gdb.mi/basics.c",
+     fullname="/home/foo/bar/devo/gdb/testsuite/gdb.mi/basics.c",line="18",
+     arch="i386:x86_64"}
+     (gdb)
+
+   Listing breakpoints and watchpoints, at different points in the
+program execution.  Note that once the watchpoint goes out of scope, it
+is deleted.
+
+     (gdb)
+     -break-watch C
+     ^done,wpt={number="2",exp="C"}
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="2",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[bkpt={number="1",type="breakpoint",disp="keep",enabled="y",
+     addr="0x00010734",func="callee4",
+     file="../../../devo/gdb/testsuite/gdb.mi/basics.c",
+     fullname="/home/foo/devo/gdb/testsuite/gdb.mi/basics.c"line="8",thread-groups=["i1"],
+     times="1"},
+     bkpt={number="2",type="watchpoint",disp="keep",
+     enabled="y",addr="",what="C",thread-groups=["i1"],times="0"}]}
+     (gdb)
+     -exec-continue
+     ^running
+     (gdb)
+     *stopped,reason="watchpoint-trigger",wpt={number="2",exp="C"},
+     value={old="-276895068",new="3"},
+     frame={func="callee4",args=[],
+     file="../../../devo/gdb/testsuite/gdb.mi/basics.c",
+     fullname="/home/foo/bar/devo/gdb/testsuite/gdb.mi/basics.c",line="13",
+     arch="i386:x86_64"}
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="2",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[bkpt={number="1",type="breakpoint",disp="keep",enabled="y",
+     addr="0x00010734",func="callee4",
+     file="../../../devo/gdb/testsuite/gdb.mi/basics.c",
+     fullname="/home/foo/devo/gdb/testsuite/gdb.mi/basics.c",line="8",thread-groups=["i1"],
+     times="1"},
+     bkpt={number="2",type="watchpoint",disp="keep",
+     enabled="y",addr="",what="C",thread-groups=["i1"],times="-5"}]}
+     (gdb)
+     -exec-continue
+     ^running
+     ^done,reason="watchpoint-scope",wpnum="2",
+     frame={func="callee3",args=[{name="strarg",
+     value="0x11940 \"A string argument.\""}],
+     file="../../../devo/gdb/testsuite/gdb.mi/basics.c",
+     fullname="/home/foo/bar/devo/gdb/testsuite/gdb.mi/basics.c",line="18",
+     arch="i386:x86_64"}
+     (gdb)
+     -break-list
+     ^done,BreakpointTable={nr_rows="1",nr_cols="6",
+     hdr=[{width="3",alignment="-1",col_name="number",colhdr="Num"},
+     {width="14",alignment="-1",col_name="type",colhdr="Type"},
+     {width="4",alignment="-1",col_name="disp",colhdr="Disp"},
+     {width="3",alignment="-1",col_name="enabled",colhdr="Enb"},
+     {width="10",alignment="-1",col_name="addr",colhdr="Address"},
+     {width="40",alignment="2",col_name="what",colhdr="What"}],
+     body=[bkpt={number="1",type="breakpoint",disp="keep",enabled="y",
+     addr="0x00010734",func="callee4",
+     file="../../../devo/gdb/testsuite/gdb.mi/basics.c",
+     fullname="/home/foo/devo/gdb/testsuite/gdb.mi/basics.c",line="8",
+     thread-groups=["i1"],times="1"}]}
+     (gdb)
+
+
+File: gdb.info,  Node: GDB/MI Catchpoint Commands,  Next: GDB/MI Program Context,  Prev: GDB/MI Breakpoint Commands,  Up: GDB/MI
+
+27.9 GDB/MI Catchpoint Commands
+===============================
+
+This section documents GDB/MI commands for manipulating catchpoints.
+
+* Menu:
+
+* Shared Library GDB/MI Catchpoint Commands::
+* Ada Exception GDB/MI Catchpoint Commands::
+* C++ Exception GDB/MI Catchpoint Commands::
+
+
+File: gdb.info,  Node: Shared Library GDB/MI Catchpoint Commands,  Next: Ada Exception GDB/MI Catchpoint Commands,  Up: GDB/MI Catchpoint Commands
+
+27.9.1 Shared Library GDB/MI Catchpoints
+----------------------------------------
+
+The '-catch-load' Command
+-------------------------
+
+Synopsis
+........
+
+      -catch-load [ -t ] [ -d ] REGEXP
+
+   Add a catchpoint for library load events.  If the '-t' option is
+used, the catchpoint is a temporary one (*note Setting Breakpoints: Set
+Breaks.).  If the '-d' option is used, the catchpoint is created in a
+disabled state.  The 'regexp' argument is a regular expression used to
+match the name of the loaded library.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'catch load'.
+
+Example
+.......
+
+     -catch-load -t foo.so
+     ^done,bkpt={number="1",type="catchpoint",disp="del",enabled="y",
+     what="load of library matching foo.so",catch-type="load",times="0"}
+     (gdb)
+
+The '-catch-unload' Command
+---------------------------
+
+Synopsis
+........
+
+      -catch-unload [ -t ] [ -d ] REGEXP
+
+   Add a catchpoint for library unload events.  If the '-t' option is
+used, the catchpoint is a temporary one (*note Setting Breakpoints: Set
+Breaks.).  If the '-d' option is used, the catchpoint is created in a
+disabled state.  The 'regexp' argument is a regular expression used to
+match the name of the unloaded library.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'catch unload'.
+
+Example
+.......
+
+     -catch-unload -d bar.so
+     ^done,bkpt={number="2",type="catchpoint",disp="keep",enabled="n",
+     what="load of library matching bar.so",catch-type="unload",times="0"}
+     (gdb)
+
+
+File: gdb.info,  Node: Ada Exception GDB/MI Catchpoint Commands,  Next: C++ Exception GDB/MI Catchpoint Commands,  Prev: Shared Library GDB/MI Catchpoint Commands,  Up: GDB/MI Catchpoint Commands
+
+27.9.2 Ada Exception GDB/MI Catchpoints
+---------------------------------------
+
+The following GDB/MI commands can be used to create catchpoints that
+stop the execution when Ada exceptions are being raised.
+
+The '-catch-assert' Command
+---------------------------
+
+Synopsis
+........
+
+      -catch-assert [ -c CONDITION] [ -d ] [ -t ]
+
+   Add a catchpoint for failed Ada assertions.
+
+   The possible optional parameters for this command are:
+
+'-c CONDITION'
+     Make the catchpoint conditional on CONDITION.
+'-d'
+     Create a disabled catchpoint.
+'-t'
+     Create a temporary catchpoint.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'catch assert'.
+
+Example
+.......
+
+     -catch-assert
+     ^done,bkptno="5",bkpt={number="5",type="breakpoint",disp="keep",
+     enabled="y",addr="0x0000000000404888",what="failed Ada assertions",
+     thread-groups=["i1"],times="0",
+     original-location="__gnat_debug_raise_assert_failure"}
+     (gdb)
+
+The '-catch-exception' Command
+------------------------------
+
+Synopsis
+........
+
+      -catch-exception [ -c CONDITION] [ -d ] [ -e EXCEPTION-NAME ]
+         [ -t ] [ -u ]
+
+   Add a catchpoint stopping when Ada exceptions are raised.  By
+default, the command stops the program when any Ada exception gets
+raised.  But it is also possible, by using some of the optional
+parameters described below, to create more selective catchpoints.
+
+   The possible optional parameters for this command are:
+
+'-c CONDITION'
+     Make the catchpoint conditional on CONDITION.
+'-d'
+     Create a disabled catchpoint.
+'-e EXCEPTION-NAME'
+     Only stop when EXCEPTION-NAME is raised.  This option cannot be
+     used combined with '-u'.
+'-t'
+     Create a temporary catchpoint.
+'-u'
+     Stop only when an unhandled exception gets raised.  This option
+     cannot be used combined with '-e'.
+
+GDB Command
+...........
+
+The corresponding GDB commands are 'catch exception' and 'catch
+exception unhandled'.
+
+Example
+.......
+
+     -catch-exception -e Program_Error
+     ^done,bkptno="4",bkpt={number="4",type="breakpoint",disp="keep",
+     enabled="y",addr="0x0000000000404874",
+     what="`Program_Error' Ada exception", thread-groups=["i1"],
+     times="0",original-location="__gnat_debug_raise_exception"}
+     (gdb)
+
+The '-catch-handlers' Command
+-----------------------------
+
+Synopsis
+........
+
+      -catch-handlers [ -c CONDITION] [ -d ] [ -e EXCEPTION-NAME ]
+         [ -t ]
+
+   Add a catchpoint stopping when Ada exceptions are handled.  By
+default, the command stops the program when any Ada exception gets
+handled.  But it is also possible, by using some of the optional
+parameters described below, to create more selective catchpoints.
+
+   The possible optional parameters for this command are:
+
+'-c CONDITION'
+     Make the catchpoint conditional on CONDITION.
+'-d'
+     Create a disabled catchpoint.
+'-e EXCEPTION-NAME'
+     Only stop when EXCEPTION-NAME is handled.
+'-t'
+     Create a temporary catchpoint.
+
+GDB Command
+...........
+
+The corresponding GDB command is 'catch handlers'.
+
+Example
+.......
+
+     -catch-handlers -e Constraint_Error
+     ^done,bkptno="4",bkpt={number="4",type="breakpoint",disp="keep",
+     enabled="y",addr="0x0000000000402f68",
+     what="`Constraint_Error' Ada exception handlers",thread-groups=["i1"],
+     times="0",original-location="__gnat_begin_handler"}
+     (gdb)
+
+
+File: gdb.info,  Node: C++ Exception GDB/MI Catchpoint Commands,  Prev: Ada Exception GDB/MI Catchpoint Commands,  Up: GDB/MI Catchpoint Commands
+
+27.9.3 C++ Exception GDB/MI Catchpoints
+---------------------------------------
+
+The following GDB/MI commands can be used to create catchpoints that
+stop the execution when C++ exceptions are being throw, rethrown, or
+caught.
+
+The '-catch-throw' Command
+--------------------------
+
+Synopsis
+........
+
+      -catch-throw [ -t ] [ -r REGEXP]
+
+   Stop when the debuggee throws a C++ exception.  If REGEXP is given,
+then only exceptions whose type matches the regular expression will be
+caught.
+
+   If '-t' is given, then the catchpoint is enabled only for one stop,
+the catchpoint is automatically deleted after stopping once for the
+event.
+
+GDB Command
+...........
+
+The corresponding GDB commands are 'catch throw' and 'tcatch throw'
+(*note Set Catchpoints::).
+
+Example
+.......
+
+     -catch-throw -r exception_type
+     ^done,bkpt={number="1",type="catchpoint",disp="keep",enabled="y",
+       what="exception throw",catch-type="throw",
+       thread-groups=["i1"],
+       regexp="exception_type",times="0"}
+     (gdb)
+     -exec-run
+     ^running
+     (gdb)
+     ~"\n"
+     ~"Catchpoint 1 (exception thrown), 0x00007ffff7ae00ed
+       in __cxa_throw () from /lib64/libstdc++.so.6\n"
+     *stopped,bkptno="1",reason="breakpoint-hit",disp="keep",
+       frame={addr="0x00007ffff7ae00ed",func="__cxa_throw",
+       args=[],from="/lib64/libstdc++.so.6",arch="i386:x86-64"},
+       thread-id="1",stopped-threads="all",core="6"
+     (gdb)
+
+The '-catch-rethrow' Command
+----------------------------
+
+Synopsis
+........
+
+      -catch-rethrow [ -t ] [ -r REGEXP]
+
+   Stop when a C++ exception is re-thrown.  If REGEXP is given, then
+only exceptions whose type matches the regular expression will be
+caught.
+
+   If '-t' is given, then the catchpoint is enabled only for one stop,
+the catchpoint is automatically deleted after the first event is caught.
+
+GDB Command
+...........
+
+The corresponding GDB commands are 'catch rethrow' and 'tcatch rethrow'
+(*note Set Catchpoints::).
+
+Example
+.......
+
+     -catch-rethrow -r exception_type
+     ^done,bkpt={number="1",type="catchpoint",disp="keep",enabled="y",
+       what="exception rethrow",catch-type="rethrow",
+       thread-groups=["i1"],
+       regexp="exception_type",times="0"}
+     (gdb)
+     -exec-run
+     ^running
+     (gdb)
+     ~"\n"
+     ~"Catchpoint 1 (exception rethrown), 0x00007ffff7ae00ed
+       in __cxa_rethrow () from /lib64/libstdc++.so.6\n"
+     *stopped,bkptno="1",reason="breakpoint-hit",disp="keep",
+       frame={addr="0x00007ffff7ae00ed",func="__cxa_rethrow",
+       args=[],from="/lib64/libstdc++.so.6",arch="i386:x86-64"},
+       thread-id="1",stopped-threads="all",core="6"
+     (gdb)
+
+The '-catch-catch' Command
+--------------------------
+
+Synopsis
+........
+
+      -catch-catch [ -t ] [ -r REGEXP]
+
+   Stop when the debuggee catches a C++ exception.  If REGEXP is given,
+then only exceptions whose type matches the regular expression will be
+caught.
+
+   If '-t' is given, then the catchpoint is enabled only for one stop,
+the catchpoint is automatically deleted after the first event is caught.
+
+GDB Command
+...........
+
+The corresponding GDB commands are 'catch catch' and 'tcatch catch'
+(*note Set Catchpoints::).
+
+Example
+.......
+
+     -catch-catch -r exception_type
+     ^done,bkpt={number="1",type="catchpoint",disp="keep",enabled="y",
+       what="exception catch",catch-type="catch",
+       thread-groups=["i1"],
+       regexp="exception_type",times="0"}
+     (gdb)
+     -exec-run
+     ^running
+     (gdb)
+     ~"\n"
+     ~"Catchpoint 1 (exception caught), 0x00007ffff7ae00ed
+       in __cxa_begin_catch () from /lib64/libstdc++.so.6\n"
+     *stopped,bkptno="1",reason="breakpoint-hit",disp="keep",
+       frame={addr="0x00007ffff7ae00ed",func="__cxa_begin_catch",
+       args=[],from="/lib64/libstdc++.so.6",arch="i386:x86-64"},
+       thread-id="1",stopped-threads="all",core="6"
+     (gdb)
 
 
 File: gdb.info,  Node: GDB/MI Program Context,  Next: GDB/MI Thread Commands,  Prev: GDB/MI Catchpoint Commands,  Up: GDB/MI
@@ -450,6 +2061,19 @@ Example
      line="13",arch="i386:x86_64"}
      (gdb)
 
+   For a 'breakpoint-hit' stopped reason, when the breakpoint
+encountered has multiple locations, the field 'bkptno' is followed by
+the field 'locno'.
+
+     -exec-continue
+     ^running
+     (gdb)
+     @Hello world
+     *stopped,reason="breakpoint-hit",disp="keep",bkptno="2",locno="3",frame={
+     func="foo",args=[],file="hello.c",fullname="/home/foo/bar/hello.c",
+     line="13",arch="i386:x86_64"}
+     (gdb)
+
 The '-exec-finish' Command
 --------------------------
 
@@ -550,11 +2174,11 @@ The '-exec-jump' Command
 Synopsis
 ........
 
-      -exec-jump LOCATION
+      -exec-jump LOCSPEC
 
-   Resumes execution of the inferior program at the location specified
-by parameter.  *Note Specify Location::, for a description of the
-different forms of LOCATION.
+   Resumes execution of the inferior program at the address to which
+LOCSPEC resolves.  *Note Location Specifications::, for a description of
+the different forms of LOCSPEC.
 
 GDB Command
 ...........
@@ -839,12 +2463,12 @@ The '-exec-until' Command
 Synopsis
 ........
 
-      -exec-until [ LOCATION ]
+      -exec-until [ LOCSPEC ]
 
-   Executes the inferior until the LOCATION specified in the argument is
-reached.  If there is no argument, the inferior executes until a source
-line greater than the current one is reached.  The reason for stopping
-in this case will be 'location-reached'.
+   Executes the inferior until it reaches the address to which LOCSPEC
+resolves.  If there is no argument, the inferior executes until it
+reaches a source line greater than the current one.  The reason for
+stopping in this case will be 'location-reached'.
 
 GDB Command
 ...........
@@ -1397,9 +3021,6 @@ request that this functionality be enabled.
 
    Note that if Python support has not been compiled into GDB, this
 command will still succeed (and do nothing).
-
-   This feature is currently (as of GDB 7.0) experimental, and may work
-differently in future versions of GDB.
 
 The '-var-create' Command
 -------------------------
@@ -2026,10 +3647,12 @@ Synopsis
 ........
 
       -data-disassemble
-         [ -s START-ADDR -e END-ADDR ]
-       | [ -a ADDR ]
-       | [ -f FILENAME -l LINENUM [ -n LINES ] ]
-       -- MODE
+       ( -s START-ADDR -e END-ADDR
+       | -a ADDR
+       | -f FILENAME -l LINENUM [ -n LINES ] )
+       [ --opcodes OPCODES-MODE ]
+       [ --source ]
+       [ -- MODE ]
 
 Where:
 
@@ -2054,29 +3677,67 @@ Where:
      and END-ADDR, only LINES lines are displayed; if LINES is higher
      than the number of lines between START-ADDR and END-ADDR, only the
      lines up to END-ADDR are displayed.
-'MODE'
-     is one of:
-        * 0 disassembly only
-        * 1 mixed source and disassembly (deprecated)
-        * 2 disassembly with raw opcodes
-        * 3 mixed source and disassembly with raw opcodes (deprecated)
-        * 4 mixed source and disassembly
-        * 5 mixed source and disassembly with raw opcodes
+'OPCODES-MODE'
+     can only be used with MODE 0, and should be one of the following:
+     'none'
+          no opcode information will be included in the result.
 
+     'bytes'
+          opcodes will be included in the result, the opcodes will be
+          formatted as for 'disassemble /b'.
+
+     'display'
+          opcodes will be included in the result, the opcodes will be
+          formatted as for 'disassemble /r'.
+'MODE'
+     the use of MODE is deprecated in favour of using the '--opcodes'
+     and '--source' options.  When no MODE is given, MODE 0 will be
+     assumed.  However, the MODE is still available for backward
+     compatibility.  The MODE should be one of:
+     '0'
+          _disassembly only_, this is the default mode if no mode is
+          specified.
+
+     '1'
+          _mixed source and disassembly (deprecated)_, it is not
+          possible to recreate this mode using '--opcodes' and
+          '--source' options.
+
+     '2'
+          _disassembly with raw opcodes_, this mode is equivalent to
+          using MODE 0 and passing '--opcodes bytes' to the command.
+
+     '3'
+          _mixed source and disassembly with raw opcodes (deprecated)_,
+          it is not possible to recreate this mode using '--opcodes' and
+          '--source' options.
+
+     '4'
+          _mixed source and disassembly_, this mode is equivalent to
+          using MODE 0 and passing '--source' to the command.
+
+     '5'
+          _mixed source and disassembly with raw opcodes_, this mode is
+          equivalent to using MODE 0 and passing '--opcodes bytes' and
+          '--source' to the command.
      Modes 1 and 3 are deprecated.  The output is "source centric" which
      hasn't proved useful in practice.  *Note Machine Code::, for a
      discussion of the difference between '/m' and '/s' output of the
      'disassemble' command.
 
+   The '--source' can only be used with MODE 0.  Passing this option
+will include the source code in the disassembly result as if MODE 4 or 5
+had been used.
+
 Result
 ......
 
 The result of the '-data-disassemble' command will be a list named
-'asm_insns', the contents of this list depend on the MODE used with the
-'-data-disassemble' command.
+'asm_insns', the contents of this list depend on the options used with
+the '-data-disassemble' command.
 
-   For modes 0 and 2 the 'asm_insns' list contains tuples with the
-following fields:
+   For modes 0 and 2, and when the '--source' option is not used, the
+'asm_insns' list contains tuples with the following fields:
 
 'address'
      The address at which this instruction was disassembled.
@@ -2091,11 +3752,26 @@ following fields:
      The text disassembly for this 'address'.
 
 'opcodes'
-     This field is only present for modes 2, 3 and 5.  This contains the
+     This field is only present for modes 2, 3 and 5, or when the
+     '--opcodes' option 'bytes' or 'display' is used.  This contains the
      raw opcode bytes for the 'inst' field.
 
-   For modes 1, 3, 4 and 5 the 'asm_insns' list contains tuples named
-'src_and_asm_line', each of which has the following fields:
+     When the '--opcodes' option is not passed to '-data-disassemble',
+     or the 'bytes' value is passed to '--opcodes', then the bytes are
+     formatted as a series of single bytes, in hex, in ascending address
+     order, with a single space between each byte.  This format is
+     equivalent to the '/b' option being used with the 'disassemble'
+     command (*note 'disassemble': disassemble.).
+
+     When '--opcodes' is passed the value 'display' then the bytes are
+     formatted in the natural instruction display order.  This means
+     multiple bytes can be grouped together, and the bytes might be
+     byte-swapped.  This format is equivalent to the '/r' option being
+     used with the 'disassemble' command.
+
+   For modes 1, 3, 4 and 5, or when the '--source' option is used, the
+'asm_insns' list contains tuples named 'src_and_asm_line', each of which
+has the following fields:
 
 'line'
      The line number within 'file'.
@@ -2670,8 +4346,8 @@ details of operation, see *note tfind::.
      range.
 
 'line'
-     Line specification is required as parameter.  *Note Specify
-     Location::.  Finds next trace frame that corresponds to a
+     Location specification is required as parameter.  *Note Location
+     Specifications::.  Finds next trace frame that corresponds to a
      tracepoint at the specified location.
 
    If 'none' was passed as MODE, the response does not have fields.
@@ -6978,1842 +8654,4 @@ File: gdb.info,  Node: Commands For Killing,  Next: Numeric Arguments,  Prev: Co
 'yank-pop (M-y)'
      Rotate the kill-ring, and yank the new top.  You can only do this
      if the prior command is 'yank' or 'yank-pop'.
-
-
-File: gdb.info,  Node: Numeric Arguments,  Next: Commands For Completion,  Prev: Commands For Killing,  Up: Bindable Readline Commands
-
-32.4.5 Specifying Numeric Arguments
------------------------------------
-
-'digit-argument (M-0, M-1, ... M--)'
-     Add this digit to the argument already accumulating, or start a new
-     argument.  'M--' starts a negative argument.
-
-'universal-argument ()'
-     This is another way to specify an argument.  If this command is
-     followed by one or more digits, optionally with a leading minus
-     sign, those digits define the argument.  If the command is followed
-     by digits, executing 'universal-argument' again ends the numeric
-     argument, but is otherwise ignored.  As a special case, if this
-     command is immediately followed by a character that is neither a
-     digit nor minus sign, the argument count for the next command is
-     multiplied by four.  The argument count is initially one, so
-     executing this function the first time makes the argument count
-     four, a second time makes the argument count sixteen, and so on.
-     By default, this is not bound to a key.
-
-
-File: gdb.info,  Node: Commands For Completion,  Next: Keyboard Macros,  Prev: Numeric Arguments,  Up: Bindable Readline Commands
-
-32.4.6 Letting Readline Type For You
-------------------------------------
-
-'complete (<TAB>)'
-     Attempt to perform completion on the text before point.  The actual
-     completion performed is application-specific.  The default is
-     filename completion.
-
-'possible-completions (M-?)'
-     List the possible completions of the text before point.  When
-     displaying completions, Readline sets the number of columns used
-     for display to the value of 'completion-display-width', the value
-     of the environment variable 'COLUMNS', or the screen width, in that
-     order.
-
-'insert-completions (M-*)'
-     Insert all completions of the text before point that would have
-     been generated by 'possible-completions'.
-
-'menu-complete ()'
-     Similar to 'complete', but replaces the word to be completed with a
-     single match from the list of possible completions.  Repeated
-     execution of 'menu-complete' steps through the list of possible
-     completions, inserting each match in turn.  At the end of the list
-     of completions, the bell is rung (subject to the setting of
-     'bell-style') and the original text is restored.  An argument of N
-     moves N positions forward in the list of matches; a negative
-     argument may be used to move backward through the list.  This
-     command is intended to be bound to <TAB>, but is unbound by
-     default.
-
-'menu-complete-backward ()'
-     Identical to 'menu-complete', but moves backward through the list
-     of possible completions, as if 'menu-complete' had been given a
-     negative argument.
-
-'delete-char-or-list ()'
-     Deletes the character under the cursor if not at the beginning or
-     end of the line (like 'delete-char').  If at the end of the line,
-     behaves identically to 'possible-completions'.  This command is
-     unbound by default.
-
-
-File: gdb.info,  Node: Keyboard Macros,  Next: Miscellaneous Commands,  Prev: Commands For Completion,  Up: Bindable Readline Commands
-
-32.4.7 Keyboard Macros
-----------------------
-
-'start-kbd-macro (C-x ()'
-     Begin saving the characters typed into the current keyboard macro.
-
-'end-kbd-macro (C-x ))'
-     Stop saving the characters typed into the current keyboard macro
-     and save the definition.
-
-'call-last-kbd-macro (C-x e)'
-     Re-execute the last keyboard macro defined, by making the
-     characters in the macro appear as if typed at the keyboard.
-
-'print-last-kbd-macro ()'
-     Print the last keboard macro defined in a format suitable for the
-     INPUTRC file.
-
-
-File: gdb.info,  Node: Miscellaneous Commands,  Prev: Keyboard Macros,  Up: Bindable Readline Commands
-
-32.4.8 Some Miscellaneous Commands
-----------------------------------
-
-'re-read-init-file (C-x C-r)'
-     Read in the contents of the INPUTRC file, and incorporate any
-     bindings or variable assignments found there.
-
-'abort (C-g)'
-     Abort the current editing command and ring the terminal's bell
-     (subject to the setting of 'bell-style').
-
-'do-lowercase-version (M-A, M-B, M-X, ...)'
-     If the metafied character X is upper case, run the command that is
-     bound to the corresponding metafied lower case character.  The
-     behavior is undefined if X is already lower case.
-
-'prefix-meta (<ESC>)'
-     Metafy the next character typed.  This is for keyboards without a
-     meta key.  Typing '<ESC> f' is equivalent to typing 'M-f'.
-
-'undo (C-_ or C-x C-u)'
-     Incremental undo, separately remembered for each line.
-
-'revert-line (M-r)'
-     Undo all changes made to this line.  This is like executing the
-     'undo' command enough times to get back to the beginning.
-
-'tilde-expand (M-~)'
-     Perform tilde expansion on the current word.
-
-'set-mark (C-@)'
-     Set the mark to the point.  If a numeric argument is supplied, the
-     mark is set to that position.
-
-'exchange-point-and-mark (C-x C-x)'
-     Swap the point with the mark.  The current cursor position is set
-     to the saved position, and the old cursor position is saved as the
-     mark.
-
-'character-search (C-])'
-     A character is read and point is moved to the next occurrence of
-     that character.  A negative count searches for previous
-     occurrences.
-
-'character-search-backward (M-C-])'
-     A character is read and point is moved to the previous occurrence
-     of that character.  A negative count searches for subsequent
-     occurrences.
-
-'skip-csi-sequence ()'
-     Read enough characters to consume a multi-key sequence such as
-     those defined for keys like Home and End.  Such sequences begin
-     with a Control Sequence Indicator (CSI), usually ESC-[.  If this
-     sequence is bound to "\e[", keys producing such sequences will have
-     no effect unless explicitly bound to a readline command, instead of
-     inserting stray characters into the editing buffer.  This is
-     unbound by default, but usually bound to ESC-[.
-
-'insert-comment (M-#)'
-     Without a numeric argument, the value of the 'comment-begin'
-     variable is inserted at the beginning of the current line.  If a
-     numeric argument is supplied, this command acts as a toggle: if the
-     characters at the beginning of the line do not match the value of
-     'comment-begin', the value is inserted, otherwise the characters in
-     'comment-begin' are deleted from the beginning of the line.  In
-     either case, the line is accepted as if a newline had been typed.
-
-'dump-functions ()'
-     Print all of the functions and their key bindings to the Readline
-     output stream.  If a numeric argument is supplied, the output is
-     formatted in such a way that it can be made part of an INPUTRC
-     file.  This command is unbound by default.
-
-'dump-variables ()'
-     Print all of the settable variables and their values to the
-     Readline output stream.  If a numeric argument is supplied, the
-     output is formatted in such a way that it can be made part of an
-     INPUTRC file.  This command is unbound by default.
-
-'dump-macros ()'
-     Print all of the Readline key sequences bound to macros and the
-     strings they output.  If a numeric argument is supplied, the output
-     is formatted in such a way that it can be made part of an INPUTRC
-     file.  This command is unbound by default.
-
-'emacs-editing-mode (C-e)'
-     When in 'vi' command mode, this causes a switch to 'emacs' editing
-     mode.
-
-'vi-editing-mode (M-C-j)'
-     When in 'emacs' editing mode, this causes a switch to 'vi' editing
-     mode.
-
-
-File: gdb.info,  Node: Readline vi Mode,  Prev: Bindable Readline Commands,  Up: Command Line Editing
-
-32.5 Readline vi Mode
-=====================
-
-While the Readline library does not have a full set of 'vi' editing
-functions, it does contain enough to allow simple editing of the line.
-The Readline 'vi' mode behaves as specified in the POSIX standard.
-
-   In order to switch interactively between 'emacs' and 'vi' editing
-modes, use the command 'M-C-j' (bound to emacs-editing-mode when in 'vi'
-mode and to vi-editing-mode in 'emacs' mode).  The Readline default is
-'emacs' mode.
-
-   When you enter a line in 'vi' mode, you are already placed in
-'insertion' mode, as if you had typed an 'i'.  Pressing <ESC> switches
-you into 'command' mode, where you can edit the text of the line with
-the standard 'vi' movement keys, move to previous history lines with 'k'
-and subsequent lines with 'j', and so forth.
-
-
-File: gdb.info,  Node: Using History Interactively,  Next: In Memoriam,  Prev: Command Line Editing,  Up: Top
-
-33 Using History Interactively
-******************************
-
-This chapter describes how to use the GNU History Library interactively,
-from a user's standpoint.  It should be considered a user's guide.  For
-information on using the GNU History Library in your own programs, *note
-(history)Programming with GNU History::.
-
-* Menu:
-
-* History Interaction::		What it feels like using History as a user.
-
-
-File: gdb.info,  Node: History Interaction,  Up: Using History Interactively
-
-33.1 History Expansion
-======================
-
-The History library provides a history expansion feature that is similar
-to the history expansion provided by 'csh'.  This section describes the
-syntax used to manipulate the history information.
-
-   History expansions introduce words from the history list into the
-input stream, making it easy to repeat commands, insert the arguments to
-a previous command into the current input line, or fix errors in
-previous commands quickly.
-
-   History expansion takes place in two parts.  The first is to
-determine which line from the history list should be used during
-substitution.  The second is to select portions of that line for
-inclusion into the current one.  The line selected from the history is
-called the "event", and the portions of that line that are acted upon
-are called "words".  Various "modifiers" are available to manipulate the
-selected words.  The line is broken into words in the same fashion that
-Bash does, so that several words surrounded by quotes are considered one
-word.  History expansions are introduced by the appearance of the
-history expansion character, which is '!' by default.
-
-   History expansion implements shell-like quoting conventions: a
-backslash can be used to remove the special handling for the next
-character; single quotes enclose verbatim sequences of characters, and
-can be used to inhibit history expansion; and characters enclosed within
-double quotes may be subject to history expansion, since backslash can
-escape the history expansion character, but single quotes may not, since
-they are not treated specially within double quotes.
-
-* Menu:
-
-* Event Designators::	How to specify which history line to use.
-* Word Designators::	Specifying which words are of interest.
-* Modifiers::		Modifying the results of substitution.
-
-
-File: gdb.info,  Node: Event Designators,  Next: Word Designators,  Up: History Interaction
-
-33.1.1 Event Designators
-------------------------
-
-An event designator is a reference to a command line entry in the
-history list.  Unless the reference is absolute, events are relative to
-the current position in the history list.
-
-'!'
-     Start a history substitution, except when followed by a space, tab,
-     the end of the line, or '='.
-
-'!N'
-     Refer to command line N.
-
-'!-N'
-     Refer to the command N lines back.
-
-'!!'
-     Refer to the previous command.  This is a synonym for '!-1'.
-
-'!STRING'
-     Refer to the most recent command preceding the current position in
-     the history list starting with STRING.
-
-'!?STRING[?]'
-     Refer to the most recent command preceding the current position in
-     the history list containing STRING.  The trailing '?' may be
-     omitted if the STRING is followed immediately by a newline.  If
-     STRING is missing, the string from the most recent search is used;
-     it is an error if there is no previous search string.
-
-'^STRING1^STRING2^'
-     Quick Substitution.  Repeat the last command, replacing STRING1
-     with STRING2.  Equivalent to '!!:s^STRING1^STRING2^'.
-
-'!#'
-     The entire command line typed so far.
-
-
-File: gdb.info,  Node: Word Designators,  Next: Modifiers,  Prev: Event Designators,  Up: History Interaction
-
-33.1.2 Word Designators
------------------------
-
-Word designators are used to select desired words from the event.  A ':'
-separates the event specification from the word designator.  It may be
-omitted if the word designator begins with a '^', '$', '*', '-', or '%'.
-Words are numbered from the beginning of the line, with the first word
-being denoted by 0 (zero).  Words are inserted into the current line
-separated by single spaces.
-
-   For example,
-
-'!!'
-     designates the preceding command.  When you type this, the
-     preceding command is repeated in toto.
-
-'!!:$'
-     designates the last argument of the preceding command.  This may be
-     shortened to '!$'.
-
-'!fi:2'
-     designates the second argument of the most recent command starting
-     with the letters 'fi'.
-
-   Here are the word designators:
-
-'0 (zero)'
-     The '0'th word.  For many applications, this is the command word.
-
-'N'
-     The Nth word.
-
-'^'
-     The first argument; that is, word 1.
-
-'$'
-     The last argument.
-
-'%'
-     The first word matched by the most recent '?STRING?' search, if the
-     search string begins with a character that is part of a word.
-
-'X-Y'
-     A range of words; '-Y' abbreviates '0-Y'.
-
-'*'
-     All of the words, except the '0'th.  This is a synonym for '1-$'.
-     It is not an error to use '*' if there is just one word in the
-     event; the empty string is returned in that case.
-
-'X*'
-     Abbreviates 'X-$'
-
-'X-'
-     Abbreviates 'X-$' like 'X*', but omits the last word.  If 'x' is
-     missing, it defaults to 0.
-
-   If a word designator is supplied without an event specification, the
-previous command is used as the event.
-
-
-File: gdb.info,  Node: Modifiers,  Prev: Word Designators,  Up: History Interaction
-
-33.1.3 Modifiers
-----------------
-
-After the optional word designator, you can add a sequence of one or
-more of the following modifiers, each preceded by a ':'.  These modify,
-or edit, the word or words selected from the history event.
-
-'h'
-     Remove a trailing pathname component, leaving only the head.
-
-'t'
-     Remove all leading pathname components, leaving the tail.
-
-'r'
-     Remove a trailing suffix of the form '.SUFFIX', leaving the
-     basename.
-
-'e'
-     Remove all but the trailing suffix.
-
-'p'
-     Print the new command but do not execute it.
-
-'s/OLD/NEW/'
-     Substitute NEW for the first occurrence of OLD in the event line.
-     Any character may be used as the delimiter in place of '/'.  The
-     delimiter may be quoted in OLD and NEW with a single backslash.  If
-     '&' appears in NEW, it is replaced by OLD.  A single backslash will
-     quote the '&'.  If OLD is null, it is set to the last OLD
-     substituted, or, if no previous history substitutions took place,
-     the last STRING in a !?STRING'[?]' search.  If NEW is is null, each
-     matching OLD is deleted.  The final delimiter is optional if it is
-     the last character on the input line.
-
-'&'
-     Repeat the previous substitution.
-
-'g'
-'a'
-     Cause changes to be applied over the entire event line.  Used in
-     conjunction with 's', as in 'gs/OLD/NEW/', or with '&'.
-
-'G'
-     Apply the following 's' or '&' modifier once to each word in the
-     event.
-
-
-File: gdb.info,  Node: In Memoriam,  Next: Formatting Documentation,  Prev: Using History Interactively,  Up: Top
-
-Appendix A In Memoriam
-**********************
-
-The GDB project mourns the loss of the following long-time contributors:
-
-'Fred Fish'
-     Fred was a long-standing contributor to GDB (1991-2006), and to
-     Free Software in general.  Outside of GDB, he was known in the
-     Amiga world for his series of Fish Disks, and the GeekGadget
-     project.
-
-'Michael Snyder'
-     Michael was one of the Global Maintainers of the GDB project, with
-     contributions recorded as early as 1996, until 2011.  In addition
-     to his day to day participation, he was a large driving force
-     behind adding Reverse Debugging to GDB.
-
-   Beyond their technical contributions to the project, they were also
-enjoyable members of the Free Software Community.  We will miss them.
-
-
-File: gdb.info,  Node: Formatting Documentation,  Next: Installing GDB,  Prev: In Memoriam,  Up: Top
-
-Appendix B Formatting Documentation
-***********************************
-
-The GDB 4 release includes an already-formatted reference card, ready
-for printing with PostScript or Ghostscript, in the 'gdb' subdirectory
-of the main source directory(1).  If you can use PostScript or
-Ghostscript with your printer, you can print the reference card
-immediately with 'refcard.ps'.
-
-   The release also includes the source for the reference card.  You can
-format it, using TeX, by typing:
-
-     make refcard.dvi
-
-   The GDB reference card is designed to print in "landscape" mode on US
-"letter" size paper; that is, on a sheet 11 inches wide by 8.5 inches
-high.  You will need to specify this form of printing as an option to
-your DVI output program.
-
-   All the documentation for GDB comes as part of the machine-readable
-distribution.  The documentation is written in Texinfo format, which is
-a documentation system that uses a single source file to produce both
-on-line information and a printed manual.  You can use one of the Info
-formatting commands to create the on-line version of the documentation
-and TeX (or 'texi2roff') to typeset the printed version.
-
-   GDB includes an already formatted copy of the on-line Info version of
-this manual in the 'gdb' subdirectory.  The main Info file is
-'gdb-12.1/gdb/gdb.info', and it refers to subordinate files matching
-'gdb.info*' in the same directory.  If necessary, you can print out
-these files, or read them with any editor; but they are easier to read
-using the 'info' subsystem in GNU Emacs or the standalone 'info'
-program, available as part of the GNU Texinfo distribution.
-
-   If you want to format these Info files yourself, you need one of the
-Info formatting programs, such as 'texinfo-format-buffer' or 'makeinfo'.
-
-   If you have 'makeinfo' installed, and are in the top level GDB source
-directory ('gdb-12.1', in the case of version 12.1), you can make the
-Info file by typing:
-
-     cd gdb
-     make gdb.info
-
-   If you want to typeset and print copies of this manual, you need TeX,
-a program to print its DVI output files, and 'texinfo.tex', the Texinfo
-definitions file.
-
-   TeX is a typesetting program; it does not print files directly, but
-produces output files called DVI files.  To print a typeset document,
-you need a program to print DVI files.  If your system has TeX
-installed, chances are it has such a program.  The precise command to
-use depends on your system; 'lpr -d' is common; another (for PostScript
-devices) is 'dvips'.  The DVI print command may require a file name
-without any extension or a '.dvi' extension.
-
-   TeX also requires a macro definitions file called 'texinfo.tex'.
-This file tells TeX how to typeset a document written in Texinfo format.
-On its own, TeX cannot either read or typeset a Texinfo file.
-'texinfo.tex' is distributed with GDB and is located in the
-'gdb-VERSION-NUMBER/texinfo' directory.
-
-   If you have TeX and a DVI printer program installed, you can typeset
-and print this manual.  First switch to the 'gdb' subdirectory of the
-main source directory (for example, to 'gdb-12.1/gdb') and type:
-
-     make gdb.dvi
-
-   Then give 'gdb.dvi' to your DVI printing program.
-
-   ---------- Footnotes ----------
-
-   (1) In 'gdb-12.1/gdb/refcard.ps' of the version 12.1 release.
-
-
-File: gdb.info,  Node: Installing GDB,  Next: Maintenance Commands,  Prev: Formatting Documentation,  Up: Top
-
-Appendix C Installing GDB
-*************************
-
-* Menu:
-
-* Requirements::                Requirements for building GDB
-* Running Configure::           Invoking the GDB 'configure' script
-* Separate Objdir::             Compiling GDB in another directory
-* Config Names::                Specifying names for hosts and targets
-* Configure Options::           Summary of options for configure
-* System-wide configuration::   Having a system-wide init file
-
-
-File: gdb.info,  Node: Requirements,  Next: Running Configure,  Up: Installing GDB
-
-C.1 Requirements for Building GDB
-=================================
-
-Building GDB requires various tools and packages to be available.  Other
-packages will be used only if they are found.
-
-Tools/Packages Necessary for Building GDB
-=========================================
-
-C++11 compiler
-     GDB is written in C++11.  It should be buildable with any recent
-     C++11 compiler, e.g. GCC.
-
-GNU make
-     GDB's build system relies on features only found in the GNU make
-     program.  Other variants of 'make' will not work.
-
-GMP (The GNU Multiple Precision Arithmetic Library)
-     GDB now uses GMP to perform some of its arithmetics.  This library
-     may be included with your operating system distribution; if it is
-     not, you can get the latest version from <https://gmplib.org/>.  If
-     GMP is installed at an unusual path, you can use the
-     '--with-libgmp-prefix' option to specify its location.
-
-Tools/Packages Optional for Building GDB
-========================================
-
-Expat
-     GDB can use the Expat XML parsing library.  This library may be
-     included with your operating system distribution; if it is not, you
-     can get the latest version from <http://expat.sourceforge.net>.
-     The 'configure' script will search for this library in several
-     standard locations; if it is installed in an unusual path, you can
-     use the '--with-libexpat-prefix' option to specify its location.
-
-     Expat is used for:
-
-        * Remote protocol memory maps (*note Memory Map Format::)
-        * Target descriptions (*note Target Descriptions::)
-        * Remote shared library lists (*Note Library List Format::, or
-          alternatively *note Library List Format for SVR4 Targets::)
-        * MS-Windows shared libraries (*note Shared Libraries::)
-        * Traceframe info (*note Traceframe Info Format::)
-        * Branch trace (*note Branch Trace Format::, *note Branch Trace
-          Configuration Format::)
-
-Guile
-     GDB can be scripted using GNU Guile.  *Note Guile::.  By default,
-     GDB will be compiled if the Guile libraries are installed and are
-     found by 'configure'.  You can use the '--with-guile' option to
-     request Guile, and pass either the Guile version number or the file
-     name of the relevant 'pkg-config' program to choose a particular
-     version of Guile.
-
-iconv
-     GDB's features related to character sets (*note Character Sets::)
-     require a functioning 'iconv' implementation.  If you are on a GNU
-     system, then this is provided by the GNU C Library.  Some other
-     systems also provide a working 'iconv'.
-
-     If GDB is using the 'iconv' program which is installed in a
-     non-standard place, you will need to tell GDB where to find it.
-     This is done with '--with-iconv-bin' which specifies the directory
-     that contains the 'iconv' program.  This program is run in order to
-     make a list of the available character sets.
-
-     On systems without 'iconv', you can install GNU Libiconv.  If
-     Libiconv is installed in a standard place, GDB will automatically
-     use it if it is needed.  If you have previously installed Libiconv
-     in a non-standard place, you can use the '--with-libiconv-prefix'
-     option to 'configure'.
-
-     GDB's top-level 'configure' and 'Makefile' will arrange to build
-     Libiconv if a directory named 'libiconv' appears in the top-most
-     source directory.  If Libiconv is built this way, and if the
-     operating system does not provide a suitable 'iconv'
-     implementation, then the just-built library will automatically be
-     used by GDB.  One easy way to set this up is to download GNU
-     Libiconv, unpack it inside the top-level directory of the GDB
-     source tree, and then rename the directory holding the Libiconv
-     source code to 'libiconv'.
-
-lzma
-     GDB can support debugging sections that are compressed with the
-     LZMA library.  *Note MiniDebugInfo::.  If this library is not
-     included with your operating system, you can find it in the xz
-     package at <http://tukaani.org/xz/>.  If the LZMA library is
-     available in the usual place, then the 'configure' script will use
-     it automatically.  If it is installed in an unusual path, you can
-     use the '--with-liblzma-prefix' option to specify its location.
-
-MPFR
-     GDB can use the GNU MPFR multiple-precision floating-point library.
-     This library may be included with your operating system
-     distribution; if it is not, you can get the latest version from
-     <http://www.mpfr.org>.  The 'configure' script will search for this
-     library in several standard locations; if it is installed in an
-     unusual path, you can use the '--with-libmpfr-prefix' option to
-     specify its location.
-
-     GNU MPFR is used to emulate target floating-point arithmetic during
-     expression evaluation when the target uses different floating-point
-     formats than the host.  If GNU MPFR it is not available, GDB will
-     fall back to using host floating-point arithmetic.
-
-Python
-     GDB can be scripted using Python language.  *Note Python::.  By
-     default, GDB will be compiled if the Python libraries are installed
-     and are found by 'configure'.  You can use the '--with-python'
-     option to request Python, and pass either the file name of the
-     relevant 'python' executable, or the name of the directory in which
-     Python is installed, to choose a particular installation of Python.
-
-zlib
-     GDB will use the 'zlib' library, if available, to read compressed
-     debug sections.  Some linkers, such as GNU gold, are capable of
-     producing binaries with compressed debug sections.  If GDB is
-     compiled with 'zlib', it will be able to read the debug information
-     in such binaries.
-
-     The 'zlib' library is likely included with your operating system
-     distribution; if it is not, you can get the latest version from
-     <http://zlib.net>.
-
-
-File: gdb.info,  Node: Running Configure,  Next: Separate Objdir,  Prev: Requirements,  Up: Installing GDB
-
-C.2 Invoking the GDB 'configure' Script
-=======================================
-
-GDB comes with a 'configure' script that automates the process of
-preparing GDB for installation; you can then use 'make' to build the
-'gdb' program.
-
-   The GDB distribution includes all the source code you need for GDB in
-a single directory, whose name is usually composed by appending the
-version number to 'gdb'.
-
-   For example, the GDB version 12.1 distribution is in the 'gdb-12.1'
-directory.  That directory contains:
-
-'gdb-12.1/configure (and supporting files)'
-     script for configuring GDB and all its supporting libraries
-
-'gdb-12.1/gdb'
-     the source specific to GDB itself
-
-'gdb-12.1/bfd'
-     source for the Binary File Descriptor library
-
-'gdb-12.1/include'
-     GNU include files
-
-'gdb-12.1/libiberty'
-     source for the '-liberty' free software library
-
-'gdb-12.1/opcodes'
-     source for the library of opcode tables and disassemblers
-
-'gdb-12.1/readline'
-     source for the GNU command-line interface
-
-   There may be other subdirectories as well.
-
-   The simplest way to configure and build GDB is to run 'configure'
-from the 'gdb-VERSION-NUMBER' source directory, which in this example is
-the 'gdb-12.1' directory.
-
-   First switch to the 'gdb-VERSION-NUMBER' source directory if you are
-not already in it; then run 'configure'.  Pass the identifier for the
-platform on which GDB will run as an argument.
-
-   For example:
-
-     cd gdb-12.1
-     ./configure
-     make
-
-   Running 'configure' and then running 'make' builds the included
-supporting libraries, then 'gdb' itself.  The configured source files,
-and the binaries, are left in the corresponding source directories.
-
-   'configure' is a Bourne-shell ('/bin/sh') script; if your system does
-not recognize this automatically when you run a different shell, you may
-need to run 'sh' on it explicitly:
-
-     sh configure
-
-   You should run the 'configure' script from the top directory in the
-source tree, the 'gdb-VERSION-NUMBER' directory.  If you run 'configure'
-from one of the subdirectories, you will configure only that
-subdirectory.  That is usually not what you want.  In particular, if you
-run the first 'configure' from the 'gdb' subdirectory of the
-'gdb-VERSION-NUMBER' directory, you will omit the configuration of
-'bfd', 'readline', and other sibling directories of the 'gdb'
-subdirectory.  This leads to build errors about missing include files
-such as 'bfd/bfd.h'.
-
-   You can install 'GDB' anywhere.  The best way to do this is to pass
-the '--prefix' option to 'configure', and then install it with 'make
-install'.
-
-
-File: gdb.info,  Node: Separate Objdir,  Next: Config Names,  Prev: Running Configure,  Up: Installing GDB
-
-C.3 Compiling GDB in Another Directory
-======================================
-
-If you want to run GDB versions for several host or target machines, you
-need a different 'gdb' compiled for each combination of host and target.
-'configure' is designed to make this easy by allowing you to generate
-each configuration in a separate subdirectory, rather than in the source
-directory.  If your 'make' program handles the 'VPATH' feature (GNU
-'make' does), running 'make' in each of these directories builds the
-'gdb' program specified there.
-
-   To build 'gdb' in a separate directory, run 'configure' with the
-'--srcdir' option to specify where to find the source.  (You also need
-to specify a path to find 'configure' itself from your working
-directory.  If the path to 'configure' would be the same as the argument
-to '--srcdir', you can leave out the '--srcdir' option; it is assumed.)
-
-   For example, with version 12.1, you can build GDB in a separate
-directory for a Sun 4 like this:
-
-     cd gdb-12.1
-     mkdir ../gdb-sun4
-     cd ../gdb-sun4
-     ../gdb-12.1/configure
-     make
-
-   When 'configure' builds a configuration using a remote source
-directory, it creates a tree for the binaries with the same structure
-(and using the same names) as the tree under the source directory.  In
-the example, you'd find the Sun 4 library 'libiberty.a' in the directory
-'gdb-sun4/libiberty', and GDB itself in 'gdb-sun4/gdb'.
-
-   Make sure that your path to the 'configure' script has just one
-instance of 'gdb' in it.  If your path to 'configure' looks like
-'../gdb-12.1/gdb/configure', you are configuring only one subdirectory
-of GDB, not the whole package.  This leads to build errors about missing
-include files such as 'bfd/bfd.h'.
-
-   One popular reason to build several GDB configurations in separate
-directories is to configure GDB for cross-compiling (where GDB runs on
-one machine--the "host"--while debugging programs that run on another
-machine--the "target").  You specify a cross-debugging target by giving
-the '--target=TARGET' option to 'configure'.
-
-   When you run 'make' to build a program or library, you must run it in
-a configured directory--whatever directory you were in when you called
-'configure' (or one of its subdirectories).
-
-   The 'Makefile' that 'configure' generates in each source directory
-also runs recursively.  If you type 'make' in a source directory such as
-'gdb-12.1' (or in a separate configured directory configured with
-'--srcdir=DIRNAME/gdb-12.1'), you will build all the required libraries,
-and then build GDB.
-
-   When you have multiple hosts or targets configured in separate
-directories, you can run 'make' on them in parallel (for example, if
-they are NFS-mounted on each of the hosts); they will not interfere with
-each other.
-
-
-File: gdb.info,  Node: Config Names,  Next: Configure Options,  Prev: Separate Objdir,  Up: Installing GDB
-
-C.4 Specifying Names for Hosts and Targets
-==========================================
-
-The specifications used for hosts and targets in the 'configure' script
-are based on a three-part naming scheme, but some short predefined
-aliases are also supported.  The full naming scheme encodes three pieces
-of information in the following pattern:
-
-     ARCHITECTURE-VENDOR-OS
-
-   For example, you can use the alias 'sun4' as a HOST argument, or as
-the value for TARGET in a '--target=TARGET' option.  The equivalent full
-name is 'sparc-sun-sunos4'.
-
-   The 'configure' script accompanying GDB does not provide any query
-facility to list all supported host and target names or aliases.
-'configure' calls the Bourne shell script 'config.sub' to map
-abbreviations to full names; you can read the script, if you wish, or
-you can use it to test your guesses on abbreviations--for example:
-
-     % sh config.sub i386-linux
-     i386-pc-linux-gnu
-     % sh config.sub alpha-linux
-     alpha-unknown-linux-gnu
-     % sh config.sub hp9k700
-     hppa1.1-hp-hpux
-     % sh config.sub sun4
-     sparc-sun-sunos4.1.1
-     % sh config.sub sun3
-     m68k-sun-sunos4.1.1
-     % sh config.sub i986v
-     Invalid configuration `i986v': machine `i986v' not recognized
-
-'config.sub' is also distributed in the GDB source directory
-('gdb-12.1', for version 12.1).
-
-
-File: gdb.info,  Node: Configure Options,  Next: System-wide configuration,  Prev: Config Names,  Up: Installing GDB
-
-C.5 'configure' Options
-=======================
-
-Here is a summary of the 'configure' options and arguments that are most
-often useful for building GDB.  'configure' also has several other
-options not listed here.  *Note (autoconf)Running configure Scripts::,
-for a full explanation of 'configure'.
-
-     configure [--help]
-               [--prefix=DIR]
-               [--exec-prefix=DIR]
-               [--srcdir=DIRNAME]
-               [--target=TARGET]
-
-You may introduce options with a single '-' rather than '--' if you
-prefer; but you may abbreviate option names if you use '--'.
-
-'--help'
-     Display a quick summary of how to invoke 'configure'.
-
-'--prefix=DIR'
-     Configure the source to install programs and files under directory
-     'DIR'.
-
-'--exec-prefix=DIR'
-     Configure the source to install programs under directory 'DIR'.
-
-'--srcdir=DIRNAME'
-     Use this option to make configurations in directories separate from
-     the GDB source directories.  Among other things, you can use this
-     to build (or maintain) several configurations simultaneously, in
-     separate directories.  'configure' writes configuration-specific
-     files in the current directory, but arranges for them to use the
-     source in the directory DIRNAME.  'configure' creates directories
-     under the working directory in parallel to the source directories
-     below DIRNAME.
-
-'--target=TARGET'
-     Configure GDB for cross-debugging programs running on the specified
-     TARGET.  Without this option, GDB is configured to debug programs
-     that run on the same machine (HOST) as GDB itself.
-
-     There is no convenient way to generate a list of all available
-     targets.  Also see the '--enable-targets' option, below.
-
-   There are many other options that are specific to GDB.  This lists
-just the most common ones; there are some very specialized options not
-described here.
-
-'--enable-targets=[TARGET]...'
-'--enable-targets=all'
-     Configure GDB for cross-debugging programs running on the specified
-     list of targets.  The special value 'all' configures GDB for
-     debugging programs running on any target it supports.
-
-'--with-gdb-datadir=PATH'
-     Set the GDB-specific data directory.  GDB will look here for
-     certain supporting files or scripts.  This defaults to the 'gdb'
-     subdirectory of 'datadir' (which can be set using '--datadir').
-
-'--with-relocated-sources=DIR'
-     Sets up the default source path substitution rule so that directory
-     names recorded in debug information will be automatically adjusted
-     for any directory under DIR.  DIR should be a subdirectory of GDB's
-     configured prefix, the one mentioned in the '--prefix' or
-     '--exec-prefix' options to configure.  This option is useful if GDB
-     is supposed to be moved to a different place after it is built.
-
-'--enable-64-bit-bfd'
-     Enable 64-bit support in BFD on 32-bit hosts.
-
-'--disable-gdbmi'
-     Build GDB without the GDB/MI machine interface (*note GDB/MI::).
-
-'--enable-tui'
-     Build GDB with the text-mode full-screen user interface (TUI).
-     Requires a curses library (ncurses and cursesX are also supported).
-
-'--with-curses'
-     Use the curses library instead of the termcap library, for
-     text-mode terminal operations.
-
-'--with-debuginfod'
-     Build GDB with 'libdebuginfod', the 'debuginfod' client library.
-     Used to automatically fetch ELF, DWARF and source files from
-     'debuginfod' servers using build IDs associated with any missing
-     files.  Enabled by default if 'libdebuginfod' is installed and
-     found at configure time.  For more information regarding
-     'debuginfod' see *note Debuginfod::.
-
-'--with-libunwind-ia64'
-     Use the libunwind library for unwinding function call stack on ia64
-     target platforms.  See http://www.nongnu.org/libunwind/index.html
-     for details.
-
-'--with-system-readline'
-     Use the readline library installed on the host, rather than the
-     library supplied as part of GDB.  Readline 7 or newer is required;
-     this is enforced by the build system.
-
-'--with-system-zlib'
-     Use the zlib library installed on the host, rather than the library
-     supplied as part of GDB.
-
-'--with-expat'
-     Build GDB with Expat, a library for XML parsing.  (Done by default
-     if libexpat is installed and found at configure time.)  This
-     library is used to read XML files supplied with GDB.  If it is
-     unavailable, some features, such as remote protocol memory maps,
-     target descriptions, and shared library lists, that are based on
-     XML files, will not be available in GDB.  If your host does not
-     have libexpat installed, you can get the latest version from
-     'http://expat.sourceforge.net'.
-
-'--with-libiconv-prefix[=DIR]'
-
-     Build GDB with GNU libiconv, a character set encoding conversion
-     library.  This is not done by default, as on GNU systems the
-     'iconv' that is built in to the C library is sufficient.  If your
-     host does not have a working 'iconv', you can get the latest
-     version of GNU iconv from 'https://www.gnu.org/software/libiconv/'.
-
-     GDB's build system also supports building GNU libiconv as part of
-     the overall build.  *Note Requirements::.
-
-'--with-lzma'
-     Build GDB with LZMA, a compression library.  (Done by default if
-     liblzma is installed and found at configure time.)  LZMA is used by
-     GDB's "mini debuginfo" feature, which is only useful on platforms
-     using the ELF object file format.  If your host does not have
-     liblzma installed, you can get the latest version from
-     'https://tukaani.org/xz/'.
-
-'--with-mpfr'
-     Build GDB with GNU MPFR, a library for multiple-precision
-     floating-point computation with correct rounding.  (Done by default
-     if GNU MPFR is installed and found at configure time.)  This
-     library is used to emulate target floating-point arithmetic during
-     expression evaluation when the target uses different floating-point
-     formats than the host.  If GNU MPFR is not available, GDB will fall
-     back to using host floating-point arithmetic.  If your host does
-     not have GNU MPFR installed, you can get the latest version from
-     'http://www.mpfr.org'.
-
-'--with-python[=PYTHON]'
-     Build GDB with Python scripting support.  (Done by default if
-     libpython is present and found at configure time.)  Python makes
-     GDB scripting much more powerful than the restricted CLI scripting
-     language.  If your host does not have Python installed, you can
-     find it on 'http://www.python.org/download/'.  The oldest version
-     of Python supported by GDB is 2.6.  The optional argument PYTHON is
-     used to find the Python headers and libraries.  It can be either
-     the name of a Python executable, or the name of the directory in
-     which Python is installed.
-
-'--with-guile[=GUILE]''
-     Build GDB with GNU Guile scripting support.  (Done by default if
-     libguile is present and found at configure time.)  If your host
-     does not have Guile installed, you can find it at
-     'https://www.gnu.org/software/guile/'.  The optional argument GUILE
-     can be a version number, which will cause 'configure' to try to use
-     that version of Guile; or the file name of a 'pkg-config'
-     executable, which will be queried to find the information needed to
-     compile and link against Guile.
-
-'--without-included-regex'
-     Don't use the regex library included with GDB (as part of the
-     libiberty library).  This is the default on hosts with version 2 of
-     the GNU C library.
-
-'--with-sysroot=DIR'
-     Use DIR as the default system root directory for libraries whose
-     file names begin with '/lib'' or '/usr/lib''.  (The value of DIR
-     can be modified at run time by using the 'set sysroot' command.)
-     If DIR is under the GDB configured prefix (set with '--prefix' or
-     '--exec-prefix options', the default system root will be
-     automatically adjusted if and when GDB is moved to a different
-     location.
-
-'--with-system-gdbinit=FILE'
-     Configure GDB to automatically load a system-wide init file.  FILE
-     should be an absolute file name.  If FILE is in a directory under
-     the configured prefix, and GDB is moved to another location after
-     being built, the location of the system-wide init file will be
-     adjusted accordingly.
-
-'--with-system-gdbinit-dir=DIRECTORY'
-     Configure GDB to automatically load init files from a system-wide
-     directory.  DIRECTORY should be an absolute directory name.  If
-     DIRECTORY is in a directory under the configured prefix, and GDB is
-     moved to another location after being built, the location of the
-     system-wide init directory will be adjusted accordingly.
-
-'--enable-build-warnings'
-     When building the GDB sources, ask the compiler to warn about any
-     code which looks even vaguely suspicious.  It passes many different
-     warning flags, depending on the exact version of the compiler you
-     are using.
-
-'--enable-werror'
-     Treat compiler warnings as errors.  It adds the '-Werror' flag to
-     the compiler, which will fail the compilation if the compiler
-     outputs any warning messages.
-
-'--enable-ubsan'
-     Enable the GCC undefined behavior sanitizer.  This is disabled by
-     default, but passing '--enable-ubsan=yes' or '--enable-ubsan=auto'
-     to 'configure' will enable it.  The undefined behavior sanitizer
-     checks for C++ undefined behavior.  It has a performance cost, so
-     if you are looking at GDB's performance, you should disable it.
-     The undefined behavior sanitizer was first introduced in GCC 4.9.
-
-
-File: gdb.info,  Node: System-wide configuration,  Prev: Configure Options,  Up: Installing GDB
-
-C.6 System-wide configuration and settings
-==========================================
-
-GDB can be configured to have a system-wide init file and a system-wide
-init file directory; this file and files in that directory (if they have
-a recognized file extension) will be read and executed at startup (*note
-What GDB does during startup: Startup.).
-
-   Here are the corresponding configure options:
-
-'--with-system-gdbinit=FILE'
-     Specify that the default location of the system-wide init file is
-     FILE.
-'--with-system-gdbinit-dir=DIRECTORY'
-     Specify that the default location of the system-wide init file
-     directory is DIRECTORY.
-
-   If GDB has been configured with the option '--prefix=$prefix', they
-may be subject to relocation.  Two possible cases:
-
-   * If the default location of this init file/directory contains
-     '$prefix', it will be subject to relocation.  Suppose that the
-     configure options are '--prefix=$prefix
-     --with-system-gdbinit=$prefix/etc/gdbinit'; if GDB is moved from
-     '$prefix' to '$install', the system init file is looked for as
-     '$install/etc/gdbinit' instead of '$prefix/etc/gdbinit'.
-
-   * By contrast, if the default location does not contain the prefix,
-     it will not be relocated.  E.g. if GDB has been configured with
-     '--prefix=/usr/local --with-system-gdbinit=/usr/share/gdb/gdbinit',
-     then GDB will always look for '/usr/share/gdb/gdbinit', wherever
-     GDB is installed.
-
-   If the configured location of the system-wide init file (as given by
-the '--with-system-gdbinit' option at configure time) is in the
-data-directory (as specified by '--with-gdb-datadir' at configure time)
-or in one of its subdirectories, then GDB will look for the system-wide
-init file in the directory specified by the '--data-directory'
-command-line option.  Note that the system-wide init file is only read
-once, during GDB initialization.  If the data-directory is changed after
-GDB has started with the 'set data-directory' command, the file will not
-be reread.
-
-   This applies similarly to the system-wide directory specified in
-'--with-system-gdbinit-dir'.
-
-   Any supported scripting language can be used for these init files, as
-long as the file extension matches the scripting language.  To be
-interpreted as regular GDB commands, the files needs to have a '.gdb'
-extension.
-
-* Menu:
-
-* System-wide Configuration Scripts::  Installed System-wide Configuration Scripts
-
-
-File: gdb.info,  Node: System-wide Configuration Scripts,  Up: System-wide configuration
-
-C.6.1 Installed System-wide Configuration Scripts
--------------------------------------------------
-
-The 'system-gdbinit' directory, located inside the data-directory (as
-specified by '--with-gdb-datadir' at configure time) contains a number
-of scripts which can be used as system-wide init files.  To
-automatically source those scripts at startup, GDB should be configured
-with '--with-system-gdbinit'.  Otherwise, any user should be able to
-source them by hand as needed.
-
-   The following scripts are currently available:
-
-   * 'elinos.py' This script is useful when debugging a program on an
-     ELinOS target.  It takes advantage of the environment variables
-     defined in a standard ELinOS environment in order to determine the
-     location of the system shared libraries, and then sets the
-     'solib-absolute-prefix' and 'solib-search-path' variables
-     appropriately.
-
-   * 'wrs-linux.py' This script is useful when debugging a program on a
-     target running Wind River Linux.  It expects the 'ENV_PREFIX' to be
-     set to the host-side sysroot used by the target system.
-
-
-File: gdb.info,  Node: Maintenance Commands,  Next: Remote Protocol,  Prev: Installing GDB,  Up: Top
-
-Appendix D Maintenance Commands
-*******************************
-
-In addition to commands intended for GDB users, GDB includes a number of
-commands intended for GDB developers, that are not documented elsewhere
-in this manual.  These commands are provided here for reference.  (For
-commands that turn on debugging messages, see *note Debugging Output::.)
-
-'maint agent [-at LOCATION,] EXPRESSION'
-'maint agent-eval [-at LOCATION,] EXPRESSION'
-     Translate the given EXPRESSION into remote agent bytecodes.  This
-     command is useful for debugging the Agent Expression mechanism
-     (*note Agent Expressions::).  The 'agent' version produces an
-     expression useful for data collection, such as by tracepoints,
-     while 'maint agent-eval' produces an expression that evaluates
-     directly to a result.  For instance, a collection expression for
-     'globa + globb' will include bytecodes to record four bytes of
-     memory at each of the addresses of 'globa' and 'globb', while
-     discarding the result of the addition, while an evaluation
-     expression will do the addition and return the sum.  If '-at' is
-     given, generate remote agent bytecode for LOCATION.  If not,
-     generate remote agent bytecode for current frame PC address.
-
-'maint agent-printf FORMAT,EXPR,...'
-     Translate the given format string and list of argument expressions
-     into remote agent bytecodes and display them as a disassembled
-     list.  This command is useful for debugging the agent version of
-     dynamic printf (*note Dynamic Printf::).
-
-'maint info breakpoints'
-     Using the same format as 'info breakpoints', display both the
-     breakpoints you've set explicitly, and those GDB is using for
-     internal purposes.  Internal breakpoints are shown with negative
-     breakpoint numbers.  The type column identifies what kind of
-     breakpoint is shown:
-
-     'breakpoint'
-          Normal, explicitly set breakpoint.
-
-     'watchpoint'
-          Normal, explicitly set watchpoint.
-
-     'longjmp'
-          Internal breakpoint, used to handle correctly stepping through
-          'longjmp' calls.
-
-     'longjmp resume'
-          Internal breakpoint at the target of a 'longjmp'.
-
-     'until'
-          Temporary internal breakpoint used by the GDB 'until' command.
-
-     'finish'
-          Temporary internal breakpoint used by the GDB 'finish'
-          command.
-
-     'shlib events'
-          Shared library events.
-
-'maint info btrace'
-     Pint information about raw branch tracing data.
-
-'maint btrace packet-history'
-     Print the raw branch trace packets that are used to compute the
-     execution history for the 'record btrace' command.  Both the
-     information and the format in which it is printed depend on the
-     btrace recording format.
-
-     'bts'
-          For the BTS recording format, print a list of blocks of
-          sequential code.  For each block, the following information is
-          printed:
-
-          Block number
-               Newer blocks have higher numbers.  The oldest block has
-               number zero.
-          Lowest 'PC'
-          Highest 'PC'
-
-     'pt'
-          For the Intel Processor Trace recording format, print a list
-          of Intel Processor Trace packets.  For each packet, the
-          following information is printed:
-
-          Packet number
-               Newer packets have higher numbers.  The oldest packet has
-               number zero.
-          Trace offset
-               The packet's offset in the trace stream.
-          Packet opcode and payload
-
-'maint btrace clear-packet-history'
-     Discards the cached packet history printed by the 'maint btrace
-     packet-history' command.  The history will be computed again when
-     needed.
-
-'maint btrace clear'
-     Discard the branch trace data.  The data will be fetched anew and
-     the branch trace will be recomputed when needed.
-
-     This implicitly truncates the branch trace to a single branch trace
-     buffer.  When updating branch trace incrementally, the branch trace
-     available to GDB may be bigger than a single branch trace buffer.
-
-'maint set btrace pt skip-pad'
-'maint show btrace pt skip-pad'
-     Control whether GDB will skip PAD packets when computing the packet
-     history.
-
-'maint info jit'
-     Print information about JIT code objects loaded in the current
-     inferior.
-
-'set displaced-stepping'
-'show displaced-stepping'
-     Control whether or not GDB will do "displaced stepping" if the
-     target supports it.  Displaced stepping is a way to single-step
-     over breakpoints without removing them from the inferior, by
-     executing an out-of-line copy of the instruction that was
-     originally at the breakpoint location.  It is also known as
-     out-of-line single-stepping.
-
-     'set displaced-stepping on'
-          If the target architecture supports it, GDB will use displaced
-          stepping to step over breakpoints.
-
-     'set displaced-stepping off'
-          GDB will not use displaced stepping to step over breakpoints,
-          even if such is supported by the target architecture.
-
-     'set displaced-stepping auto'
-          This is the default mode.  GDB will use displaced stepping
-          only if non-stop mode is active (*note Non-Stop Mode::) and
-          the target architecture supports displaced stepping.
-
-'maint check-psymtabs'
-     Check the consistency of currently expanded psymtabs versus
-     symtabs.  Use this to check, for example, whether a symbol is in
-     one but not the other.
-
-'maint check-symtabs'
-     Check the consistency of currently expanded symtabs.
-
-'maint expand-symtabs [REGEXP]'
-     Expand symbol tables.  If REGEXP is specified, only expand symbol
-     tables for file names matching REGEXP.
-
-'maint set catch-demangler-crashes [on|off]'
-'maint show catch-demangler-crashes'
-     Control whether GDB should attempt to catch crashes in the symbol
-     name demangler.  The default is to attempt to catch crashes.  If
-     enabled, the first time a crash is caught, a core file is created,
-     the offending symbol is displayed and the user is presented with
-     the option to terminate the current session.
-
-'maint cplus first_component NAME'
-     Print the first C++ class/namespace component of NAME.
-
-'maint cplus namespace'
-     Print the list of possible C++ namespaces.
-
-'maint deprecate COMMAND [REPLACEMENT]'
-'maint undeprecate COMMAND'
-     Deprecate or undeprecate the named COMMAND.  Deprecated commands
-     cause GDB to issue a warning when you use them.  The optional
-     argument REPLACEMENT says which newer command should be used in
-     favor of the deprecated one; if it is given, GDB will mention the
-     replacement as part of the warning.
-
-'maint dump-me'
-     Cause a fatal signal in the debugger and force it to dump its core.
-     This is supported only on systems which support aborting a program
-     with the 'SIGQUIT' signal.
-
-'maint internal-error [MESSAGE-TEXT]'
-'maint internal-warning [MESSAGE-TEXT]'
-'maint demangler-warning [MESSAGE-TEXT]'
-
-     Cause GDB to call the internal function 'internal_error',
-     'internal_warning' or 'demangler_warning' and hence behave as
-     though an internal problem has been detected.  In addition to
-     reporting the internal problem, these functions give the user the
-     opportunity to either quit GDB or (for 'internal_error' and
-     'internal_warning') create a core file of the current GDB session.
-
-     These commands take an optional parameter MESSAGE-TEXT that is used
-     as the text of the error or warning message.
-
-     Here's an example of using 'internal-error':
-
-          (gdb) maint internal-error testing, 1, 2
-          .../maint.c:121: internal-error: testing, 1, 2
-          A problem internal to GDB has been detected.  Further
-          debugging may prove unreliable.
-          Quit this debugging session? (y or n) n
-          Create a core file? (y or n) n
-          (gdb)
-
-'maint set internal-error ACTION [ask|yes|no]'
-'maint show internal-error ACTION'
-'maint set internal-warning ACTION [ask|yes|no]'
-'maint show internal-warning ACTION'
-'maint set demangler-warning ACTION [ask|yes|no]'
-'maint show demangler-warning ACTION'
-     When GDB reports an internal problem (error or warning) it gives
-     the user the opportunity to both quit GDB and create a core file of
-     the current GDB session.  These commands let you override the
-     default behaviour for each particular ACTION, described in the
-     table below.
-
-     'quit'
-          You can specify that GDB should always (yes) or never (no)
-          quit.  The default is to ask the user what to do.
-
-     'corefile'
-          You can specify that GDB should always (yes) or never (no)
-          create a core file.  The default is to ask the user what to
-          do.  Note that there is no 'corefile' option for
-          'demangler-warning': demangler warnings always create a core
-          file and this cannot be disabled.
-
-'maint set internal-error backtrace [on|off]'
-'maint show internal-error backtrace'
-'maint set internal-warning backtrace [on|off]'
-'maint show internal-warning backtrace'
-     When GDB reports an internal problem (error or warning) it is
-     possible to have a backtrace of GDB printed to the standard error
-     stream.  This is 'on' by default for 'internal-error' and 'off' by
-     default for 'internal-warning'.
-
-'maint packet TEXT'
-     If GDB is talking to an inferior via the serial protocol, then this
-     command sends the string TEXT to the inferior, and displays the
-     response packet.  GDB supplies the initial '$' character, the
-     terminating '#' character, and the checksum.
-
-     Any non-printable characters in the reply are printed as escaped
-     hex, e.g.  '\x00', '\x01', etc.
-
-'maint print architecture [FILE]'
-     Print the entire architecture configuration.  The optional argument
-     FILE names the file where the output goes.
-
-'maint print c-tdesc [-single-feature] [FILE]'
-     Print the target description (*note Target Descriptions::) as a C
-     source file.  By default, the target description is for the current
-     target, but if the optional argument FILE is provided, that file is
-     used to produce the description.  The FILE should be an XML
-     document, of the form described in *note Target Description
-     Format::.  The created source file is built into GDB when GDB is
-     built again.  This command is used by developers after they add or
-     modify XML target descriptions.
-
-     When the optional flag '-single-feature' is provided then the
-     target description being processed (either the default, or from
-     FILE) must only contain a single feature.  The source file produced
-     is different in this case.
-
-'maint print xml-tdesc [FILE]'
-     Print the target description (*note Target Descriptions::) as an
-     XML file.  By default print the target description for the current
-     target, but if the optional argument FILE is provided, then that
-     file is read in by GDB and then used to produce the description.
-     The FILE should be an XML document, of the form described in *note
-     Target Description Format::.
-
-'maint check xml-descriptions DIR'
-     Check that the target descriptions dynamically created by GDB equal
-     the descriptions created from XML files found in DIR.
-
-'maint check libthread-db'
-     Run integrity checks on the current inferior's thread debugging
-     library.  This exercises all 'libthread_db' functionality used by
-     GDB on GNU/Linux systems, and by extension also exercises the
-     'proc_service' functions provided by GDB that 'libthread_db' uses.
-     Note that parts of the test may be skipped on some platforms when
-     debugging core files.
-
-'maint print core-file-backed-mappings'
-     Print the file-backed mappings which were loaded from a core file
-     note.  This output represents state internal to GDB and should be
-     similar to the mappings displayed by the 'info proc mappings'
-     command.
-
-'maint print dummy-frames'
-     Prints the contents of GDB's internal dummy-frame stack.
-
-          (gdb) b add
-          ...
-          (gdb) print add(2,3)
-          Breakpoint 2, add (a=2, b=3) at ...
-          58	  return (a + b);
-          The program being debugged stopped while in a function called from GDB.
-          ...
-          (gdb) maint print dummy-frames
-          0xa8206d8: id={stack=0xbfffe734,code=0xbfffe73f,!special}, ptid=process 9353
-          (gdb)
-
-     Takes an optional file parameter.
-
-'maint print registers [FILE]'
-'maint print raw-registers [FILE]'
-'maint print cooked-registers [FILE]'
-'maint print register-groups [FILE]'
-'maint print remote-registers [FILE]'
-     Print GDB's internal register data structures.
-
-     The command 'maint print raw-registers' includes the contents of
-     the raw register cache; the command 'maint print cooked-registers'
-     includes the (cooked) value of all registers, including registers
-     which aren't available on the target nor visible to user; the
-     command 'maint print register-groups' includes the groups that each
-     register is a member of; and the command 'maint print
-     remote-registers' includes the remote target's register numbers and
-     offsets in the 'G' packets.
-
-     These commands take an optional parameter, a file name to which to
-     write the information.
-
-'maint print reggroups [FILE]'
-     Print GDB's internal register group data structures.  The optional
-     argument FILE tells to what file to write the information.
-
-     The register groups info looks like this:
-
-          (gdb) maint print reggroups
-           Group      Type
-           general    user
-           float      user
-           all        user
-           vector     user
-           system     user
-           save       internal
-           restore    internal
-
-'maint flush register-cache'
-'flushregs'
-     Flush the contents of the register cache and as a consequence the
-     frame cache.  This command is useful when debugging issues related
-     to register fetching, or frame unwinding.  The command 'flushregs'
-     is deprecated in favor of 'maint flush register-cache'.
-
-'maint flush source-cache'
-     Flush GDB's cache of source code file contents.  After GDB reads a
-     source file, and optionally applies styling (*note Output
-     Styling::), the file contents are cached.  This command clears that
-     cache.  The next time GDB wants to show lines from a source file,
-     the content will be re-read.
-
-     This command is useful when debugging issues related to source code
-     styling.  After flushing the cache any source code displayed by GDB
-     will be re-read and re-styled.
-
-'maint print objfiles [REGEXP]'
-     Print a dump of all known object files.  If REGEXP is specified,
-     only print object files whose names match REGEXP.  For each object
-     file, this command prints its name, address in memory, and all of
-     its psymtabs and symtabs.
-
-'maint print user-registers'
-     List all currently available "user registers".  User registers
-     typically provide alternate names for actual hardware registers.
-     They include the four "standard" registers '$fp', '$pc', '$sp', and
-     '$ps'.  *Note standard registers::.  User registers can be used in
-     expressions in the same way as the canonical register names, but
-     only the latter are listed by the 'info registers' and 'maint print
-     registers' commands.
-
-'maint print section-scripts [REGEXP]'
-     Print a dump of scripts specified in the '.debug_gdb_section'
-     section.  If REGEXP is specified, only print scripts loaded by
-     object files matching REGEXP.  For each script, this command prints
-     its name as specified in the objfile, and the full path if known.
-     *Note dotdebug_gdb_scripts section::.
-
-'maint print statistics'
-     This command prints, for each object file in the program, various
-     data about that object file followed by the byte cache ("bcache")
-     statistics for the object file.  The objfile data includes the
-     number of minimal, partial, full, and stabs symbols, the number of
-     types defined by the objfile, the number of as yet unexpanded psym
-     tables, the number of line tables and string tables, and the amount
-     of memory used by the various tables.  The bcache statistics
-     include the counts, sizes, and counts of duplicates of all and
-     unique objects, max, average, and median entry size, total memory
-     used and its overhead and savings, and various measures of the hash
-     table size and chain lengths.
-
-'maint print target-stack'
-     A "target" is an interface between the debugger and a particular
-     kind of file or process.  Targets can be stacked in "strata", so
-     that more than one target can potentially respond to a request.  In
-     particular, memory accesses will walk down the stack of targets
-     until they find a target that is interested in handling that
-     particular address.
-
-     This command prints a short description of each layer that was
-     pushed on the "target stack", starting from the top layer down to
-     the bottom one.
-
-'maint print type EXPR'
-     Print the type chain for a type specified by EXPR.  The argument
-     can be either a type name or a symbol.  If it is a symbol, the type
-     of that symbol is described.  The type chain produced by this
-     command is a recursive definition of the data type as stored in
-     GDB's data structures, including its flags and contained types.
-
-'maint selftest [-verbose] [FILTER]'
-     Run any self tests that were compiled in to GDB.  This will print a
-     message showing how many tests were run, and how many failed.  If a
-     FILTER is passed, only the tests with FILTER in their name will be
-     ran.  If '-verbose' is passed, the self tests can be more verbose.
-
-'maint set selftest verbose'
-'maint show selftest verbose'
-     Control whether self tests are run verbosely or not.
-
-'maint info selftests'
-     List the selftests compiled in to GDB.
-
-'maint set dwarf always-disassemble'
-'maint show dwarf always-disassemble'
-     Control the behavior of 'info address' when using DWARF debugging
-     information.
-
-     The default is 'off', which means that GDB should try to describe a
-     variable's location in an easily readable format.  When 'on', GDB
-     will instead display the DWARF location expression in an
-     assembly-like format.  Note that some locations are too complex for
-     GDB to describe simply; in this case you will always see the
-     disassembly form.
-
-     Here is an example of the resulting disassembly:
-
-          (gdb) info addr argc
-          Symbol "argc" is a complex DWARF expression:
-               1: DW_OP_fbreg 0
-
-     For more information on these expressions, see the DWARF standard
-     (http://www.dwarfstd.org/).
-
-'maint set dwarf max-cache-age'
-'maint show dwarf max-cache-age'
-     Control the DWARF compilation unit cache.
-
-     In object files with inter-compilation-unit references, such as
-     those produced by the GCC option '-feliminate-dwarf2-dups', the
-     DWARF reader needs to frequently refer to previously read
-     compilation units.  This setting controls how long a compilation
-     unit will remain in the cache if it is not referenced.  A higher
-     limit means that cached compilation units will be stored in memory
-     longer, and more total memory will be used.  Setting it to zero
-     disables caching, which will slow down GDB startup, but reduce
-     memory consumption.
-
-'maint set dwarf unwinders'
-'maint show dwarf unwinders'
-     Control use of the DWARF frame unwinders.
-
-     Many targets that support DWARF debugging use GDB's DWARF frame
-     unwinders to build the backtrace.  Many of these targets will also
-     have a second mechanism for building the backtrace for use in cases
-     where DWARF information is not available, this second mechanism is
-     often an analysis of a function's prologue.
-
-     In order to extend testing coverage of the second level stack
-     unwinding mechanisms it is helpful to be able to disable the DWARF
-     stack unwinders, this can be done with this switch.
-
-     In normal use of GDB disabling the DWARF unwinders is not
-     advisable, there are cases that are better handled through DWARF
-     than prologue analysis, and the debug experience is likely to be
-     better with the DWARF frame unwinders enabled.
-
-     If DWARF frame unwinders are not supported for a particular target
-     architecture, then enabling this flag does not cause them to be
-     used.
-
-'maint set worker-threads'
-'maint show worker-threads'
-     Control the number of worker threads that may be used by GDB.  On
-     capable hosts, GDB may use multiple threads to speed up certain
-     CPU-intensive operations, such as demangling symbol names.  While
-     the number of threads used by GDB may vary, this command can be
-     used to set an upper bound on this number.  The default is
-     'unlimited', which lets GDB choose a reasonable number.  Note that
-     this only controls worker threads started by GDB itself; libraries
-     used by GDB may start threads of their own.
-
-'maint set profile'
-'maint show profile'
-     Control profiling of GDB.
-
-     Profiling will be disabled until you use the 'maint set profile'
-     command to enable it.  When you enable profiling, the system will
-     begin collecting timing and execution count data; when you disable
-     profiling or exit GDB, the results will be written to a log file.
-     Remember that if you use profiling, GDB will overwrite the
-     profiling log file (often called 'gmon.out').  If you have a record
-     of important profiling data in a 'gmon.out' file, be sure to move
-     it to a safe location.
-
-     Configuring with '--enable-profiling' arranges for GDB to be
-     compiled with the '-pg' compiler option.
-
-'maint set show-debug-regs'
-'maint show show-debug-regs'
-     Control whether to show variables that mirror the hardware debug
-     registers.  Use 'on' to enable, 'off' to disable.  If enabled, the
-     debug registers values are shown when GDB inserts or removes a
-     hardware breakpoint or watchpoint, and when the inferior triggers a
-     hardware-assisted breakpoint or watchpoint.
-
-'maint set show-all-tib'
-'maint show show-all-tib'
-     Control whether to show all non zero areas within a 1k block
-     starting at thread local base, when using the 'info w32
-     thread-information-block' command.
-
-'maint set target-async'
-'maint show target-async'
-     This controls whether GDB targets operate in synchronous or
-     asynchronous mode (*note Background Execution::).  Normally the
-     default is asynchronous, if it is available; but this can be
-     changed to more easily debug problems occurring only in synchronous
-     mode.
-
-'maint set target-non-stop'
-'maint show target-non-stop'
-
-     This controls whether GDB targets always operate in non-stop mode
-     even if 'set non-stop' is 'off' (*note Non-Stop Mode::).  The
-     default is 'auto', meaning non-stop mode is enabled if supported by
-     the target.
-
-     'maint set target-non-stop auto'
-          This is the default mode.  GDB controls the target in non-stop
-          mode if the target supports it.
-
-     'maint set target-non-stop on'
-          GDB controls the target in non-stop mode even if the target
-          does not indicate support.
-
-     'maint set target-non-stop off'
-          GDB does not control the target in non-stop mode even if the
-          target supports it.
-
-'maint set tui-resize-message'
-'maint show tui-resize-message'
-     Control whether GDB displays a message each time the terminal is
-     resized when in TUI mode.  The default is 'off', which means that
-     GDB is silent during resizes.  When 'on', GDB will display a
-     message after a resize is completed; the message will include a
-     number indicating how many times the terminal has been resized.
-     This setting is intended for use by the test suite, where it would
-     otherwise be difficult to determine when a resize and refresh has
-     been completed.
-
-'maint set per-command'
-'maint show per-command'
-
-     GDB can display the resources used by each command.  This is useful
-     in debugging performance problems.
-
-     'maint set per-command space [on|off]'
-     'maint show per-command space'
-          Enable or disable the printing of the memory used by GDB for
-          each command.  If enabled, GDB will display how much memory
-          each command took, following the command's own output.  This
-          can also be requested by invoking GDB with the '--statistics'
-          command-line switch (*note Mode Options::).
-
-     'maint set per-command time [on|off]'
-     'maint show per-command time'
-          Enable or disable the printing of the execution time of GDB
-          for each command.  If enabled, GDB will display how much time
-          it took to execute each command, following the command's own
-          output.  Both CPU time and wallclock time are printed.
-          Printing both is useful when trying to determine whether the
-          cost is CPU or, e.g., disk/network latency.  Note that the CPU
-          time printed is for GDB only, it does not include the
-          execution time of the inferior because there's no mechanism
-          currently to compute how much time was spent by GDB and how
-          much time was spent by the program been debugged.  This can
-          also be requested by invoking GDB with the '--statistics'
-          command-line switch (*note Mode Options::).
-
-     'maint set per-command symtab [on|off]'
-     'maint show per-command symtab'
-          Enable or disable the printing of basic symbol table
-          statistics for each command.  If enabled, GDB will display the
-          following information:
-
-            a. number of symbol tables
-            b. number of primary symbol tables
-            c. number of blocks in the blockvector
-
-'maint set check-libthread-db [on|off]'
-'maint show check-libthread-db'
-     Control whether GDB should run integrity checks on inferior
-     specific thread debugging libraries as they are loaded.  The
-     default is not to perform such checks.  If any check fails GDB will
-     unload the library and continue searching for a suitable candidate
-     as described in *note set libthread-db-search-path::.  For more
-     information about the tests, see *note maint check libthread-db::.
-
-'maint set gnu-source-highlight enabled [on|off]'
-'maint show gnu-source-highlight enabled'
-     Control whether GDB should use the GNU Source Highlight library for
-     applying styling to source code (*note Output Styling::).  This
-     will be 'on' by default if the GNU Source Highlight library is
-     available.  If the GNU Source Highlight library is not available,
-     then this will be 'off' by default, and attempting to change this
-     value to 'on' will give an error.
-
-     If the GNU Source Highlight library is not being used, then GDB
-     will use the Python Pygments package for source code styling, if it
-     is available.
-
-     This option is useful for debugging GDB's use of the Pygments
-     library when GDB is linked against the GNU Source Highlight
-     library.
-
-'maint space VALUE'
-     An alias for 'maint set per-command space'.  A non-zero value
-     enables it, zero disables it.
-
-'maint time VALUE'
-     An alias for 'maint set per-command time'.  A non-zero value
-     enables it, zero disables it.
-
-'maint translate-address [SECTION] ADDR'
-     Find the symbol stored at the location specified by the address
-     ADDR and an optional section name SECTION.  If found, GDB prints
-     the name of the closest symbol and an offset from the symbol's
-     location to the specified address.  This is similar to the 'info
-     address' command (*note Symbols::), except that this command also
-     allows to find symbols in other sections.
-
-     If section was not specified, the section in which the symbol was
-     found is also printed.  For dynamically linked executables, the
-     name of executable or shared library containing the symbol is
-     printed as well.
-
-'maint test-options require-delimiter'
-'maint test-options unknown-is-error'
-'maint test-options unknown-is-operand'
-     These commands are used by the testsuite to validate the command
-     options framework.  The 'require-delimiter' variant requires a
-     double-dash delimiter to indicate end of options.  The
-     'unknown-is-error' and 'unknown-is-operand' do not.  The
-     'unknown-is-error' variant throws an error on unknown option, while
-     'unknown-is-operand' treats unknown options as the start of the
-     command's operands.  When run, the commands output the result of
-     the processed options.  When completed, the commands store the
-     internal result of completion in a variable exposed by the 'maint
-     show test-options-completion-result' command.
-
-'maint show test-options-completion-result'
-     Shows the result of completing the 'maint test-options'
-     subcommands.  This is used by the testsuite to validate completion
-     support in the command options framework.
-
-'maint set test-settings KIND'
-'maint show test-settings KIND'
-     These are representative commands for each KIND of setting type GDB
-     supports.  They are used by the testsuite for exercising the
-     settings infrastructure.
-
-'maint set backtrace-on-fatal-signal [on|off]'
-'maint show backtrace-on-fatal-signal'
-     When this setting is 'on', if GDB itself terminates with a fatal
-     signal (e.g. SIGSEGV), then a limited backtrace will be printed to
-     the standard error stream.  This backtrace can be used to help
-     diagnose crashes within GDB in situations where a user is unable to
-     share a corefile with the GDB developers.
-
-     If the functionality to provide this backtrace is not available for
-     the platform on which GDB is running then this feature will be
-     'off' by default, and attempting to turn this feature on will give
-     an error.
-
-     For platforms that do support creating the backtrace this feature
-     is 'on' by default.
-
-'maint with SETTING [VALUE] [-- COMMAND]'
-     Like the 'with' command, but works with 'maintenance set'
-     variables.  This is used by the testsuite to exercise the 'with'
-     command's infrastructure.
-
-   The following command is useful for non-interactive invocations of
-GDB, such as in the test suite.
-
-'set watchdog NSEC'
-     Set the maximum number of seconds GDB will wait for the target
-     operation to finish.  If this time expires, GDB reports and error
-     and the command is aborted.
-
-'show watchdog'
-     Show the current setting of the target wait timeout.
 
