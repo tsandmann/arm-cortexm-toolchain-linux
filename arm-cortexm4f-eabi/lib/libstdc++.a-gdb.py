@@ -1,5 +1,5 @@
 # -*- python -*-
-# Copyright (C) 2009-2022 Free Software Foundation, Inc.
+# Copyright (C) 2009-2023 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ import gdb
 import os
 import os.path
 
-pythondir = '/usr/local/arm-none-eabi/share/gcc-12.3.0/python'
+pythondir = '/usr/local/arm-none-eabi/share/gcc-13.2.0/python'
 libdir = '/usr/local/arm-none-eabi/arm-cortexm4f-eabi/lib'
 
 # This file might be loaded when there is no current objfile.  This
