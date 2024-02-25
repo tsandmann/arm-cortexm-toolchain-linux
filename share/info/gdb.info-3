@@ -21,7 +21,7 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Tenth Edition, of 'Debugging with GDB: the GNU
-Source-Level Debugger' for GDB (GDB) Version 13.2.
+Source-Level Debugger' for GDB (GDB) Version 14.1.
 
    Copyright (C) 1988-2023 Free Software Foundation, Inc.
 
@@ -35,6 +35,207 @@ with the Back-Cover Texts as in (a) below.
    (a) The FSF's Back-Cover Text is: "You are free to copy and modify
 this GNU Manual.  Buying copies from GNU Press supports the FSF in
 developing GNU and promoting software freedom."
+
+
+File: gdb.info,  Node: Filenames,  Next: Manually,  Up: Setting
+
+15.1.1 List of Filename Extensions and Languages
+------------------------------------------------
+
+If a source file name ends in one of the following extensions, then GDB
+infers that its language is the one indicated.
+
+'.ada'
+'.ads'
+'.adb'
+'.a'
+     Ada source file.
+
+'.c'
+     C source file
+
+'.C'
+'.cc'
+'.cp'
+'.cpp'
+'.cxx'
+'.c++'
+     C++ source file
+
+'.d'
+     D source file
+
+'.m'
+     Objective-C source file
+
+'.f'
+'.F'
+     Fortran source file
+
+'.mod'
+     Modula-2 source file
+
+'.s'
+'.S'
+     Assembler source file.  This actually behaves almost like C, but
+     GDB does not skip over function prologues when stepping.
+
+   In addition, you may set the language associated with a filename
+extension.  *Note Displaying the Language: Show.
+
+
+File: gdb.info,  Node: Manually,  Next: Automatically,  Prev: Filenames,  Up: Setting
+
+15.1.2 Setting the Working Language
+-----------------------------------
+
+If you allow GDB to set the language automatically, expressions are
+interpreted the same way in your debugging session and your program.
+
+   If you wish, you may set the language manually.  To do this, issue
+the command 'set language LANG', where LANG is the name of a language,
+such as 'c' or 'modula-2'.  For a list of the supported languages, type
+'set language'.
+
+   Setting the language manually prevents GDB from updating the working
+language automatically.  This can lead to confusion if you try to debug
+a program when the working language is not the same as the source
+language, when an expression is acceptable to both languages--but means
+different things.  For instance, if the current source file were written
+in C, and GDB was parsing Modula-2, a command such as:
+
+     print a = b + c
+
+might not have the effect you intended.  In C, this means to add 'b' and
+'c' and place the result in 'a'.  The result printed would be the value
+of 'a'.  In Modula-2, this means to compare 'a' to the result of 'b+c',
+yielding a 'BOOLEAN' value.
+
+
+File: gdb.info,  Node: Automatically,  Prev: Manually,  Up: Setting
+
+15.1.3 Having GDB Infer the Source Language
+-------------------------------------------
+
+To have GDB set the working language automatically, use 'set language
+local' or 'set language auto'.  GDB then infers the working language.
+That is, when your program stops in a frame (usually by encountering a
+breakpoint), GDB sets the working language to the language recorded for
+the function in that frame.  If the language for a frame is unknown
+(that is, if the function or block corresponding to the frame was
+defined in a source file that does not have a recognized extension), the
+current working language is not changed, and GDB issues a warning.
+
+   This may not seem necessary for most programs, which are written
+entirely in one source language.  However, program modules and libraries
+written in one source language can be used by a main program written in
+a different source language.  Using 'set language auto' in this case
+frees you from having to set the working language manually.
+
+
+File: gdb.info,  Node: Show,  Next: Checks,  Prev: Setting,  Up: Languages
+
+15.2 Displaying the Language
+============================
+
+The following commands help you find out which language is the working
+language, and also what language source files were written in.
+
+'show language'
+     Display the current working language.  This is the language you can
+     use with commands such as 'print' to build and compute expressions
+     that may involve variables in your program.
+
+'info frame'
+     Display the source language for this frame.  This language becomes
+     the working language if you use an identifier from this frame.
+     *Note Information about a Frame: Frame Info, to identify the other
+     information listed here.
+
+'info source'
+     Display the source language of this source file.  *Note Examining
+     the Symbol Table: Symbols, to identify the other information listed
+     here.
+
+   In unusual circumstances, you may have source files with extensions
+not in the standard list.  You can then set the extension associated
+with a language explicitly:
+
+'set extension-language EXT LANGUAGE'
+     Tell GDB that source files with extension EXT are to be assumed as
+     written in the source language LANGUAGE.
+
+'info extensions'
+     List all the filename extensions and the associated languages.
+
+
+File: gdb.info,  Node: Checks,  Next: Supported Languages,  Prev: Show,  Up: Languages
+
+15.3 Type and Range Checking
+============================
+
+Some languages are designed to guard you against making seemingly common
+errors through a series of compile- and run-time checks.  These include
+checking the type of arguments to functions and operators and making
+sure mathematical overflows are caught at run time.  Checks such as
+these help to ensure a program's correctness once it has been compiled
+by eliminating type mismatches and providing active checks for range
+errors when your program is running.
+
+   By default GDB checks for these errors according to the rules of the
+current source language.  Although GDB does not check the statements in
+your program, it can check expressions entered directly into GDB for
+evaluation via the 'print' command, for example.
+
+* Menu:
+
+* Type Checking::               An overview of type checking
+* Range Checking::              An overview of range checking
+
+
+File: gdb.info,  Node: Type Checking,  Next: Range Checking,  Up: Checks
+
+15.3.1 An Overview of Type Checking
+-----------------------------------
+
+Some languages, such as C and C++, are strongly typed, meaning that the
+arguments to operators and functions have to be of the correct type,
+otherwise an error occurs.  These checks prevent type mismatch errors
+from ever causing any run-time problems.  For example,
+
+     int klass::my_method(char *b) { return  b ? 1 : 2; }
+
+     (gdb) print obj.my_method (0)
+     $1 = 2
+but
+     (gdb) print obj.my_method (0x1234)
+     Cannot resolve method klass::my_method to any overloaded instance
+
+   The second example fails because in C++ the integer constant '0x1234'
+is not type-compatible with the pointer parameter type.
+
+   For the expressions you use in GDB commands, you can tell GDB to not
+enforce strict type checking or to treat any mismatches as errors and
+abandon the expression; When type checking is disabled, GDB successfully
+evaluates expressions like the second example above.
+
+   Even if type checking is off, there may be other reasons related to
+type that prevent GDB from evaluating an expression.  For instance, GDB
+does not know how to add an 'int' and a 'struct foo'.  These particular
+type errors have nothing to do with the language in use and usually
+arise from expressions which make little sense to evaluate anyway.
+
+   GDB provides some additional commands for controlling type checking:
+
+'set check type on'
+'set check type off'
+     Set strict type checking on or off.  If any type mismatches occur
+     in evaluating an expression while type checking is on, GDB prints a
+     message and aborts evaluation of the expression.
+
+'show check type'
+     Show the current setting of type checking and whether GDB is
+     enforcing strict type checking rules.
 
 
 File: gdb.info,  Node: Range Checking,  Prev: Type Checking,  Up: Checks
@@ -2099,7 +2300,7 @@ Threads::).  GDB provides the following task-related commands:
           Name of the task in the program.
 
 'info task TASKNO'
-     This command shows detailed informations on the specified task, as
+     This command shows detailed information on the specified task, as
      in the following example:
           (gdb) info tasks
             ID       TID P-ID Pri State                  Name
@@ -3005,6 +3206,11 @@ looks up the value of 'x' in the scope of the file 'foo.c'.
      header information and messages explaining why no functions or
      variables have been printed.
 
+'info main'
+     Print the name of the starting function of the program.  This
+     serves primarily Fortran programs, which have a user-supplied name
+     for the main subroutine.
+
 'info classes'
 'info classes REGEXP'
      Display all Objective-C classes in your program, or (with the
@@ -3156,6 +3362,13 @@ looks up the value of 'x' in the scope of the file 'foo.c'.
      'PROLOGUE-END' column indicates that a given address is an adequate
      place to set a breakpoint at the first instruction following a
      function prologue.
+
+'set always-read-ctf [on|off]'
+'show always-read-ctf'
+
+     When off, CTF debug info is only read if DWARF debug info is not
+     present.  When on, CTF debug info is read regardless of whether
+     DWARF debug info is present.  The default value is off.
 
 'maint set symbol-cache-size SIZE'
      Set the size of the symbol cache to SIZE.  The default size is
@@ -3316,10 +3529,13 @@ address of your own choosing, with the following commands:
      Resume execution at the address of the code location that results
      from resolving LOCSPEC.  *Note Location Specifications::, for a
      description of the different forms of LOCSPEC.  If LOCSPEC resolves
-     to more than one address, the command aborts before jumping.
-     Execution stops again immediately if there is a breakpoint there.
-     It is common practice to use the 'tbreak' command in conjunction
-     with 'jump'.  *Note Setting Breakpoints: Set Breaks.
+     to more than one address, those outside the current compilation
+     unit are ignored.  If considering just the addresses in the current
+     compilation unit still doesn't yield a unique address, the command
+     aborts before jumping.  Execution stops again immediately if there
+     is a breakpoint there.  It is common practice to use the 'tbreak'
+     command in conjunction with 'jump'.  *Note Setting Breakpoints: Set
+     Breaks.
 
      The 'jump' command does not change the current stack frame, or the
      stack pointer, or the contents of any memory location or any
@@ -3342,6 +3558,13 @@ address of where it _will_ run when you continue.  For example,
 makes the next 'continue' command or stepping command execute at address
 '0x485', rather than at the address where your program stopped.  *Note
 Continuing and Stepping: Continuing and Stepping.
+
+   However, writing directly to '$pc' will only change the value of the
+program-counter register, while using 'jump' will ensure that any
+additional auxiliary state is also updated.  For example, on SPARC,
+'jump' will update both '$pc' and '$npc' registers prior to resuming
+execution.  When using the approach of writing directly to '$pc' it is
+your job to also update the '$npc' register.
 
    The most common occasion to use the 'jump' command is to back
 up--perhaps with more breakpoints set--over a portion of a program that
@@ -3553,6 +3776,34 @@ controlled by the 'set unwind-on-terminating-exception' command.
 
 'show may-call-functions'
      Show permission to call functions in the program.
+
+   When calling a function within a program, it is possible that the
+program could enter a state from which the called function may never
+return.  If this happens then it is possible to interrupt the function
+call by typing the interrupt character (often 'Ctrl-c').
+
+   If a called function is interrupted for any reason, including hitting
+a breakpoint, or triggering a watchpoint, and the stack is not unwound
+due to 'set unwind-on-terminating-exception on' or 'set unwindonsignal
+on' (*note stack unwind settings::), then the dummy-frame, created by
+GDB to facilitate the call to the program function, will be visible in
+the backtrace, for example frame '#3' in the following backtrace:
+
+     (gdb) backtrace
+     #0  0x00007ffff7b3d1e7 in nanosleep () from /lib64/libc.so.6
+     #1  0x00007ffff7b3d11e in sleep () from /lib64/libc.so.6
+     #2  0x000000000040113f in deadlock () at test.cc:13
+     #3  <function called from gdb>
+     #4  breakpt () at test.cc:20
+     #5  0x0000000000401151 in main () at test.cc:25
+
+   At this point it is possible to examine the state of the inferior
+just like any other stop.
+
+   Depending on why the function was interrupted then it may be possible
+to resume the inferior (using commands like 'continue', 'step', etc).
+In this case, when the inferior finally returns to the dummy-frame, GDB
+will once again halt the inferior.
 
 17.5.1 Calling functions with no debug info
 -------------------------------------------
@@ -4625,9 +4876,10 @@ Debuginfod::) is enabled, GDB will attempt to download the file from
 'debuginfod' servers.
 
    Global debugging info directories default to what is set by GDB
-configure option '--with-separate-debug-dir'.  During GDB run you can
-also set the global debugging info directories, and view the list GDB is
-currently using.
+configure option '--with-separate-debug-dir' and augmented by the
+colon-separated list of directories provided via GDB configure option
+'--additional-debug-dirs'.  During GDB run you can also set the global
+debugging info directories, and view the list GDB is currently using.
 
 'set debug-file-directory DIRECTORIES'
      Set the directories which GDB searches for separate debugging
@@ -5333,7 +5585,7 @@ use 'help target' to list them.
 
 * Connecting::                  Connecting to a remote target
 * File Transfer::               Sending files to a remote system
-* Server::	                Using the gdbserver program
+* Server::                      Using the gdbserver program
 * Remote Configuration::        Remote configuration
 * Remote Stub::                 Implementing a remote stub
 
@@ -6169,7 +6421,15 @@ If you do, that may be a bug in your remote debugging stub, or a bug in
 GDB.  You may want to report the problem to the GDB developers.
 
    For each packet NAME, the command to enable or disable the packet is
-'set remote NAME-packet'.  The available settings are:
+'set remote NAME-packet'.  If you configure a packet, the configuration
+will apply for all future remote targets if no target is selected.  In
+case there is a target selected, only the configuration of the current
+target is changed.  All other existing remote targets' features are not
+affected.  The command to print the current configuration of a packet is
+'show remote NAME-packet'.  It displays the current remote target's
+configuration.  If no remote target is selected, the default
+configuration for future connections is shown.  The available settings
+are:
 
 Command Name         Remote Packet           Related Features
                                              
@@ -6331,6 +6591,21 @@ storage-address'                             '__thread'
 'no-resumed-stop-reply''no resumed thread    Tracking thread
                      left stop reply'        lifetime.
                                              
+
+   The number of bytes per memory-read or memory-write packet for a
+remote target can be configured using the commands
+'set remote memory-read-packet-size' and
+'set remote memory-write-packet-size'.  If set to '0' (zero) the default
+packet size will be used.  The actual limit is further reduced depending
+on the target.  Specify 'fixed' to disable the target-dependent
+restriction and 'limit' to enable it.  Similar to the enabling and
+disabling of remote packets, the command applies to the currently
+selected target (if available).  If no remote target is selected, it
+applies to all future remote connections.  The configuration of the
+selected target can be displayed using the commands
+'show remote memory-read-packet-size' and
+'show remote memory-write-packet-size'.  If no remote target is
+selected, the default configuration for future connections is shown.
 
 
 File: gdb.info,  Node: Remote Stub,  Prev: Remote Configuration,  Up: Remote Debugging
@@ -6622,13 +6897,13 @@ configurations.
 
 * Menu:
 
-* BSD libkvm Interface::	Debugging BSD kernel memory images
+* BSD libkvm Interface::        Debugging BSD kernel memory images
 * Process Information::         Process information
 * DJGPP Native::                Features specific to the DJGPP port
-* Cygwin Native::		Features specific to the Cygwin port
+* Cygwin Native::               Features specific to the Cygwin port
 * Hurd Native::                 Features specific to GNU Hurd
-* Darwin::			Features specific to Darwin
-* FreeBSD::			Features specific to FreeBSD
+* Darwin::                      Features specific to Darwin
+* FreeBSD::                     Features specific to FreeBSD
 
 
 File: gdb.info,  Node: BSD libkvm Interface,  Next: Process Information,  Up: Native
@@ -6938,224 +7213,4 @@ to remote serial debugging in the DJGPP port of GDB.
      port, it prints whether it's active or not, its I/O base address
      and IRQ number, whether it uses a 16550-style FIFO, its baudrate,
      and the counts of various errors encountered so far.
-
-
-File: gdb.info,  Node: Cygwin Native,  Next: Hurd Native,  Prev: DJGPP Native,  Up: Native
-
-21.1.4 Features for Debugging MS Windows PE Executables
--------------------------------------------------------
-
-GDB supports native debugging of MS Windows programs, including DLLs
-with and without symbolic debugging information.
-
-   MS-Windows programs that call 'SetConsoleMode' to switch off the
-special meaning of the 'Ctrl-C' keystroke cannot be interrupted by
-typing 'C-c'.  For this reason, GDB on MS-Windows supports 'C-<BREAK>'
-as an alternative interrupt key sequence, which can be used to interrupt
-the debuggee even if it ignores 'C-c'.
-
-   There are various additional Cygwin-specific commands, described in
-this section.  Working with DLLs that have no debugging symbols is
-described in *note Non-debug DLL Symbols::.
-
-'info w32'
-     This is a prefix of MS Windows-specific commands which print
-     information about the target system and important OS structures.
-
-'info w32 selector'
-     This command displays information returned by the Win32 API
-     'GetThreadSelectorEntry' function.  It takes an optional argument
-     that is evaluated to a long value to give the information about
-     this given selector.  Without argument, this command displays
-     information about the six segment registers.
-
-'info w32 thread-information-block'
-     This command displays thread specific information stored in the
-     Thread Information Block (readable on the X86 CPU family using
-     '$fs' selector for 32-bit programs and '$gs' for 64-bit programs).
-
-'signal-event ID'
-     This command signals an event with user-provided ID.  Used to
-     resume crashing process when attached to it using MS-Windows JIT
-     debugging (AeDebug).
-
-     To use it, create or edit the following keys in
-     'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug' and/or
-     'HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows
-     NT\CurrentVersion\AeDebug' (for x86_64 versions):
-
-        - 'Debugger' (REG_SZ) -- a command to launch the debugger.
-          Suggested command is: 'FULLY-QUALIFIED-PATH-TO-GDB.EXE -ex
-          "attach %ld" -ex "signal-event %ld" -ex "continue"'.
-
-          The first '%ld' will be replaced by the process ID of the
-          crashing process, the second '%ld' will be replaced by the ID
-          of the event that blocks the crashing process, waiting for GDB
-          to attach.
-
-        - 'Auto' (REG_SZ) -- either '1' or '0'.  '1' will make the
-          system run debugger specified by the Debugger key
-          automatically, '0' will cause a dialog box with "OK" and
-          "Cancel" buttons to appear, which allows the user to either
-          terminate the crashing process (OK) or debug it (Cancel).
-
-'set cygwin-exceptions MODE'
-     If MODE is 'on', GDB will break on exceptions that happen inside
-     the Cygwin DLL. If MODE is 'off', GDB will delay recognition of
-     exceptions, and may ignore some exceptions which seem to be caused
-     by internal Cygwin DLL "bookkeeping".  This option is meant
-     primarily for debugging the Cygwin DLL itself; the default value is
-     'off' to avoid annoying GDB users with false 'SIGSEGV' signals.
-
-'show cygwin-exceptions'
-     Displays whether GDB will break on exceptions that happen inside
-     the Cygwin DLL itself.
-
-'set new-console MODE'
-     If MODE is 'on' the debuggee will be started in a new console on
-     next start.  If MODE is 'off', the debuggee will be started in the
-     same console as the debugger.
-
-'show new-console'
-     Displays whether a new console is used when the debuggee is
-     started.
-
-'set new-group MODE'
-     This boolean value controls whether the debuggee should start a new
-     group or stay in the same group as the debugger.  This affects the
-     way the Windows OS handles 'Ctrl-C'.
-
-'show new-group'
-     Displays current value of new-group boolean.
-
-'set debugevents'
-     This boolean value adds debug output concerning kernel events
-     related to the debuggee seen by the debugger.  This includes events
-     that signal thread and process creation and exit, DLL loading and
-     unloading, console interrupts, and debugging messages produced by
-     the Windows 'OutputDebugString' API call.
-
-'set debugexec'
-     This boolean value adds debug output concerning execute events
-     (such as resume thread) seen by the debugger.
-
-'set debugexceptions'
-     This boolean value adds debug output concerning exceptions in the
-     debuggee seen by the debugger.
-
-'set debugmemory'
-     This boolean value adds debug output concerning debuggee memory
-     reads and writes by the debugger.
-
-'set shell'
-     This boolean values specifies whether the debuggee is called via a
-     shell or directly (default value is on).
-
-'show shell'
-     Displays if the debuggee will be started with a shell.
-
-* Menu:
-
-* Non-debug DLL Symbols::  Support for DLLs without debugging symbols
-
-
-File: gdb.info,  Node: Non-debug DLL Symbols,  Up: Cygwin Native
-
-21.1.4.1 Support for DLLs without Debugging Symbols
-...................................................
-
-Very often on windows, some of the DLLs that your program relies on do
-not include symbolic debugging information (for example,
-'kernel32.dll').  When GDB doesn't recognize any debugging symbols in a
-DLL, it relies on the minimal amount of symbolic information contained
-in the DLL's export table.  This section describes working with such
-symbols, known internally to GDB as "minimal symbols".
-
-   Note that before the debugged program has started execution, no DLLs
-will have been loaded.  The easiest way around this problem is simply to
-start the program -- either by setting a breakpoint or letting the
-program run once to completion.
-
-21.1.4.2 DLL Name Prefixes
-..........................
-
-In keeping with the naming conventions used by the Microsoft debugging
-tools, DLL export symbols are made available with a prefix based on the
-DLL name, for instance 'KERNEL32!CreateFileA'.  The plain name is also
-entered into the symbol table, so 'CreateFileA' is often sufficient.  In
-some cases there will be name clashes within a program (particularly if
-the executable itself includes full debugging symbols) necessitating the
-use of the fully qualified name when referring to the contents of the
-DLL. Use single-quotes around the name to avoid the exclamation mark
-("!")  being interpreted as a language operator.
-
-   Note that the internal name of the DLL may be all upper-case, even
-though the file name of the DLL is lower-case, or vice-versa.  Since
-symbols within GDB are _case-sensitive_ this may cause some confusion.
-If in doubt, try the 'info functions' and 'info variables' commands or
-even 'maint print msymbols' (*note Symbols::).  Here's an example:
-
-     (gdb) info function CreateFileA
-     All functions matching regular expression "CreateFileA":
-
-     Non-debugging symbols:
-     0x77e885f4  CreateFileA
-     0x77e885f4  KERNEL32!CreateFileA
-
-     (gdb) info function !
-     All functions matching regular expression "!":
-
-     Non-debugging symbols:
-     0x6100114c  cygwin1!__assert
-     0x61004034  cygwin1!_dll_crt0@0
-     0x61004240  cygwin1!dll_crt0(per_process *)
-     [etc...]
-
-21.1.4.3 Working with Minimal Symbols
-.....................................
-
-Symbols extracted from a DLL's export table do not contain very much
-type information.  All that GDB can do is guess whether a symbol refers
-to a function or variable depending on the linker section that contains
-the symbol.  Also note that the actual contents of the memory contained
-in a DLL are not available unless the program is running.  This means
-that you cannot examine the contents of a variable or disassemble a
-function within a DLL without a running program.
-
-   Variables are generally treated as pointers and dereferenced
-automatically.  For this reason, it is often necessary to prefix a
-variable name with the address-of operator ("&") and provide explicit
-type information in the command.  Here's an example of the type of
-problem:
-
-     (gdb) print 'cygwin1!__argv'
-     'cygwin1!__argv' has unknown type; cast it to its declared type
-
-     (gdb) x 'cygwin1!__argv'
-     'cygwin1!__argv' has unknown type; cast it to its declared type
-
-   And two possible solutions:
-
-     (gdb) print ((char **)'cygwin1!__argv')[0]
-     $2 = 0x22fd98 "/cygdrive/c/mydirectory/myprogram"
-
-     (gdb) x/2x &'cygwin1!__argv'
-     0x610c0aa8 <cygwin1!__argv>:    0x10021608      0x00000000
-     (gdb) x/x 0x10021608
-     0x10021608:     0x0022fd98
-     (gdb) x/s 0x0022fd98
-     0x22fd98:        "/cygdrive/c/mydirectory/myprogram"
-
-   Setting a break point within a DLL is possible even before the
-program starts execution.  However, under these circumstances, GDB can't
-examine the initial instructions of the function in order to skip the
-function's frame set-up code.  You can work around this by using "*&" to
-set the breakpoint at a raw memory address:
-
-     (gdb) break *&'python22!PyOS_Readline'
-     Breakpoint 1 at 0x1e04eff0
-
-   The author of these extensions is not entirely convinced that setting
-a break point within a shared DLL like 'kernel32.dll' is completely
-safe.
 
