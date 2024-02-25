@@ -1,10 +1,27 @@
 This is porting.info, produced by makeinfo version 6.5 from
 porting.texi.
 
+Copyright (C) 1993, 1994, 1995 Cygnus Support
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the entire resulting derived work is distributed under the terms of
+a permission notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions.
+START-INFO-DIR-ENTRY
 START-INFO-DIR-ENTRY
 * Embed with GNU: (porting-).         Embed with GNU
 END-INFO-DIR-ENTRY
-   Copyright (c) 1993, 1994, 1995 Cygnus Support
+END-INFO-DIR-ENTRY
+
+   Copyright (C) 1993, 1994, 1995 Cygnus Support
 
    Permission is granted to make and distribute verbatim copies of this
 manual provided the copyright notice and this permission notice are
@@ -86,7 +103,7 @@ executable image.  This work was done during the early part of 1993.
 hardware and systems files together made sense.  Around this same time
 the stub dirs were made to run standalone, mostly so it could also be
 used to support GDB's remote debugging needs.  At this time it was
-decided to move the stub dirs out of newlib and into it's own separate
+decided to move the stub dirs out of newlib and into its own separate
 library so it could be used standalone, and be included in various other
 GNU tools without having to bring in all of newlib, which is large.  The
 new library is called Libgloss, for Gnu Low-level OS support.
@@ -251,7 +268,7 @@ canonical opposed to the target alias.  So, to configure for a CPU32
      ../src/libgloss/configure --verbose --target m68k-coff
 
    The configure script is in the source tree.  When configure is
-invoked it will determine it's own source tree, so the -srcdir is would
+invoked it will determine its own source tree, so the -srcdir is would
 be redundant here.
 
    Once libgloss is configured, 'make' is sufficient to build it.  The
@@ -435,7 +452,7 @@ will format command line options for the other passes.  The usual
 command line GCC uses for the final link phase will have LD link in the
 startup code and additional libraries by default.
 
-   GNU AS started it's life to only function as a compiler pass, but
+   GNU AS started its life to only function as a compiler pass, but
 these days it can also be used as a source level assembler.  When used
 as a source level assembler, it has a companion assembler preprocessor
 called 'gasp'.  This has a syntax similar to most other assembler macros
@@ -517,7 +534,7 @@ File: porting.info,  Node: Crt0,  Next: Linker Scripts,  Up: Libraries
 
 To make a program that has been compiled with GCC to run, you need to
 write some startup code.  The initial piece of startup code is called a
-crt0.  (C RunTime 0) This is usually written in assembler, and it's
+crt0.  (C RunTime 0) This is usually written in assembler, and its
 object gets linked in first, and bootstraps the rest of the application
 when executed.  This file needs to do the following things.
 
@@ -541,8 +558,8 @@ when executed.  This file needs to do the following things.
      line arguments and an environment pointer.  Then branch to main().
      For G++ the the main routine gets a branch to __main inserted by
      the code generator at the very top.  __main() is used by G++ to
-     initialize it's internal tables.  __main() then returns back to
-     your original main() and your code gets executed.
+     initialize its internal tables.  __main() then returns back to your
+     original main() and your code gets executed.
 
   4. Call exit() After main() has returned, you need to cleanup things
      and return control of the hardware from the application.  On some
@@ -728,7 +745,7 @@ m68k-coff configuration defaults to not linking in the crt0.o by
 default.  It assumes that the developer probably has their own crt0.o.
 This behavior is controlled in the config file for each architecture.
 It's a macro called 'STARTFILE_SPEC', and if it's set to 'null', then
-when 'gcc' formats it's command line, it doesn't add 'crto.o'.  Any file
+when 'gcc' formats its command line, it doesn't add 'crto.o'.  Any file
 name can be specified here, but the default is always 'crt0.o'.
 
    Course if you only use 'ld' to link, then the control of whether or
@@ -838,7 +855,7 @@ File: porting.info,  Node: What to do now,  Next: Libc,  Prev: Linker Scripts,  
 
 A few ROM monitors load binary images, typically 'a.out', but most all
 will load an 'srecord'.  An srecord is an ASCII representation of a
-binary image.  At it's simplest, an srecord is an address, followed by a
+binary image.  At its simplest, an srecord is an address, followed by a
 byte count, followed by the bytes, and a 2's compliment checksum.  A
 whole srecord file has an optional _start_ record, and a required _end_
 record.  To make an srecord from a binary image, the GNU 'objcopy'
@@ -863,7 +880,7 @@ filesystems, so typically they are stubbed out.  Kill is also a stub,
 since you can't do process control on an embedded system.
 
    Sbrk() is only needed by applications that do dynamic memory
-allocation.  It's uses the symbol '_end' that is setup in the linker
+allocation.  It uses the symbol '_end' that is setup in the linker
 script.  It also requires a compile time option to set the upper size
 limit on the heap space.  This leaves us with read and write, which are
 required for serial I/O. Usually these two routines are written in C,
@@ -2121,44 +2138,44 @@ A.6 Led control sample
 
 
 Tag Table:
-Node: Top789
-Node: Libgloss1576
-Node: Supported targets4753
-Node: Blackfin5289
-Node: Sparclite5564
-Node: CPU326486
-Node: Mips7786
-Node: PA-RISC9104
-Node: Building libgloss10633
-Node: Board support14243
-Node: Build System Internals16383
-Node: GCC18686
-Node: Overview19977
-Node: Options22206
-Node: GCC Options22882
-Node: GAS Options23177
-Node: LD Options23272
-Node: Libraries23347
-Node: Crt023659
-Node: Linker Scripts29924
-Node: What to do now34784
-Node: Libc35678
-Node: I/O Support37528
-Node: Memory Support37649
-Node: Misc Support39109
-Node: Debugging40282
-Node: GDB43853
-Node: GNU remote protocol45253
-Node: Exception handler51755
-Node: ROM monitors53174
-Node: Other remote protocols54152
-Node: Binutils54311
-Node: Code Listings54394
-Node: idp.ld54865
-Node: crt0.S56612
-Node: glue.c59215
-Node: mvme.S64103
-Node: io.c68250
-Node: leds.c68860
+Node: Top1447
+Node: Libgloss2234
+Node: Supported targets5410
+Node: Blackfin5946
+Node: Sparclite6221
+Node: CPU327143
+Node: Mips8443
+Node: PA-RISC9761
+Node: Building libgloss11290
+Node: Board support14899
+Node: Build System Internals17039
+Node: GCC19342
+Node: Overview20633
+Node: Options22861
+Node: GCC Options23537
+Node: GAS Options23832
+Node: LD Options23927
+Node: Libraries24002
+Node: Crt024314
+Node: Linker Scripts30577
+Node: What to do now35436
+Node: Libc36329
+Node: I/O Support38177
+Node: Memory Support38298
+Node: Misc Support39758
+Node: Debugging40931
+Node: GDB44502
+Node: GNU remote protocol45902
+Node: Exception handler52404
+Node: ROM monitors53823
+Node: Other remote protocols54801
+Node: Binutils54960
+Node: Code Listings55043
+Node: idp.ld55514
+Node: crt0.S57261
+Node: glue.c59864
+Node: mvme.S64752
+Node: io.c68899
+Node: leds.c69509
 
 End Tag Table
